@@ -1,0 +1,577 @@
+/* ============================================
+   🎨 Notifications UI - Custom Styles
+   ============================================ */
+
+/* خلفية الصفحة الرئيسية */
+.notifications-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #581c87 50%, #0f172a 100%);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* العناصر المتحركة في الخلفية */
+.background-element {
+  position: fixed;
+  width: 288px;
+  height: 288px;
+  border-radius: 50%;
+  filter: blur(64px);
+  opacity: 0.2;
+  mix-blend-mode: multiply;
+}
+
+.bg-element-1 {
+  top: 25%;
+  left: 25%;
+  background: #a855f7;
+  animation: float 6s ease-in-out infinite;
+}
+
+.bg-element-2 {
+  top: 75%;
+  right: 25%;
+  background: #3b82f6;
+  animation: float 6s ease-in-out infinite 2s;
+}
+
+.bg-element-3 {
+  top: 50%;
+  left: 50%;
+  background: #ec4899;
+  animation: float 6s ease-in-out infinite 4s;
+}
+
+/* حاوي المحتوى الرئيسي */
+.main-container {
+  position: relative;
+  max-width: 1280px;
+  margin: 0 auto;
+  z-index: 10;
+}
+
+/* هيدر الصفحة */
+.header-section {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.header-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+  border-radius: 16px;
+  padding: 16px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.notification-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #ef4444, #ec4899);
+  color: white;
+  font-size: 12px;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  animation: bounce 1s infinite;
+}
+
+.main-title {
+  font-size: 32px;
+  font-weight: bold;
+  color: white;
+  margin: 0;
+}
+
+/* زر الرسالة الجديدة */
+.new-message-btn {
+  background: linear-gradient(135deg, #34d399, #06b6d4);
+  color: white;
+  padding: 16px 32px;
+  border-radius: 16px;
+  font-weight: 600;
+  box-shadow: 0 25px 50px -12px rgba(52, 211, 153, 0.25);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+}
+
+.new-message-btn:hover {
+  background: linear-gradient(135deg, #10b981, #0891b2);
+  transform: scale(1.05);
+}
+
+/* فورم الرسالة الجديدة */
+.new-message-form {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(24px);
+  border-radius: 24px;
+  padding: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  margin-bottom: 32px;
+  animation: slideInFromTop 0.5s ease-out;
+}
+
+.form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.form-title {
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.close-btn:hover {
+  color: white;
+}
+
+/* حقول الإدخال */
+.input-group {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.input-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  width: 20px;
+  height: 20px;
+}
+
+.form-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 16px 16px 16px 48px;
+  color: white;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.form-input::placeholder {
+  color: #9ca3af;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+}
+
+.form-textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 16px 16px 16px 48px;
+  color: white;
+  font-size: 16px;
+  resize: none;
+  transition: all 0.3s ease;
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+}
+
+.submit-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #10b981, #14b8a6);
+  color: white;
+  padding: 16px;
+  border-radius: 16px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+  transition: all 0.3s ease;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669, #0d9488);
+  transform: scale(1.02);
+}
+
+.submit-btn:disabled {
+  background: linear-gradient(135deg, #6b7280, #6b7280);
+  cursor: not-allowed;
+}
+
+/* كرت الإشعار */
+.notification-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(24px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  transition: all 0.5s ease;
+  margin-bottom: 24px;
+  animation: slideInFromBottom 0.5s ease-out;
+}
+
+.notification-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+}
+
+.notification-content {
+  padding: 32px;
+}
+
+.notification-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+/* أفاتار المرسل */
+.sender-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 24px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.avatar-pink { background: linear-gradient(135deg, #f472b6, #dc2626); }
+.avatar-blue { background: linear-gradient(135deg, #60a5fa, #4338ca); }
+.avatar-green { background: linear-gradient(135deg, #34d399, #059669); }
+.avatar-purple { background: linear-gradient(135deg, #a78bfa, #ec4899); }
+.avatar-yellow { background: linear-gradient(135deg, #fbbf24, #ea580c); }
+
+/* معلومات الإشعار */
+.notification-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.sender-name {
+  font-weight: bold;
+  color: white;
+  font-size: 20px;
+  margin: 0;
+}
+
+.notification-type {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.type-manual { background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+.type-system { background: linear-gradient(135deg, #f97316, #ef4444); }
+
+.read-status {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.status-read { background: #10b981; }
+.status-unread { 
+  background: #ef4444; 
+  animation: pulse 2s infinite;
+}
+
+.notification-message {
+  color: #e5e7eb;
+  font-size: 18px;
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+
+.notification-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notification-time {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.notification-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* أزرار الأكشن */
+.action-btn {
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+  transform: scale(1.05);
+}
+
+.btn-read { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+.btn-reply { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; }
+.btn-delete { background: linear-gradient(135deg, #ef4444, #ec4899); color: white; }
+.btn-send { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; }
+.btn-cancel { background: linear-gradient(135deg, #6b7280, #6b7280); color: white; }
+
+/* فورم الرد */
+.reply-form {
+  margin-top: 32px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: slideInFromTop 0.3s ease-out;
+}
+
+.reply-title {
+  color: white;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reply-textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  color: white;
+  font-size: 16px;
+  resize: none;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.reply-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+}
+
+.reply-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* شاشة التحميل */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 256px;
+}
+
+.loading-spinner {
+  position: relative;
+}
+
+.spinner-ring {
+  width: 64px;
+  height: 64px;
+  border: 4px solid rgba(168, 85, 247, 0.3);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.spinner-ring:nth-child(1) {
+  border-top-color: #a855f7;
+}
+
+.spinner-ring:nth-child(2) {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-top-color: #3b82f6;
+  animation-delay: 0.15s;
+}
+
+/* رسالة فارغة */
+.empty-state {
+  text-align: center;
+  padding: 64px 0;
+}
+
+.empty-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(24px);
+  border-radius: 24px;
+  padding: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  display: inline-block;
+}
+
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  color: #9ca3af;
+  margin: 0 auto 16px;
+}
+
+.empty-title {
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.empty-description {
+  color: #9ca3af;
+  font-size: 16px;
+}
+
+/* ============================================
+   🎬 الأنيميشن والحركات
+   ============================================ */
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   📱 الاستجابة للشاشات المختلفة
+   ============================================ */
+
+@media (max-width: 768px) {
+  .notifications-container {
+    padding: 16px;
+  }
+  
+  .main-title {
+    font-size: 24px;
+  }
+  
+  .notification-content {
+    padding: 24px;
+  }
+  
+  .notification-header {
+    gap: 16px;
+  }
+  
+  .sender-avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 18px;
+  }
+  
+  .notification-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .action-btn {
+    justify-content: center;
+  }
+  
+  .new-message-form {
+    padding: 24px;
+  }
+}
