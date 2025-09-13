@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Routes, Route } from "react-router-dom";
 import Login from "./Login"; // ✅ انتبه لحجم الحروف
 import PrivateRoute from "./PrivateRoute";
@@ -47,6 +48,13 @@ function App() {
         }
       />
     </Routes>
+=======
+import Header from "./Header.jsx";
+
+function App() {
+  return (
+    <Header />
+>>>>>>> 63b3b22b215bb7200a8e0d610b9fcf114a02b5bc
   );
 }
 
