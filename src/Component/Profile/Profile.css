@@ -1,0 +1,108 @@
+.profile-page {
+    padding: 2rem;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .profile-card {
+    width: 100%;
+    max-width: 900px;
+    background: linear-gradient(135deg, #f9fafb, #e0f2fe);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+  }
+  
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: #1e3a8a;
+  }
+  
+  .profile-icon {
+    font-size: 1.5rem;
+  }
+  
+  .profile-avatar {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+  }
+  
+  .profile-avatar img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  
+  .profile-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .form-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #374151;
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+  
+  .form-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+    color: #374151;
+    font-size: 0.9rem;
+  }
+  
+  .badge {
+    display: inline-block;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #fff;
+  }
+  
+  .badge.active {
+    background-color: #10b981;
+  }
+  
+  .badge.role {
+    background-color: #2563eb;
+  }
+  
+  .profile-actions {
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .edit-btn {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    color: #fff;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+  
+  .edit-btn:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, #1e40af, #1e3a8a);
+  }
+  
