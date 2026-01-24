@@ -26,9 +26,10 @@ import PersonIcon from "@mui/icons-material/Person";
 import PolicyIcon from "@mui/icons-material/Description";
 import axios from "axios";
 import { useLanguage } from "../../../context/LanguageContext";
+import { t } from "../../../config/translations";
 
 const ClaimsManage = () => {
-  const { isRTL } = useLanguage();
+  const { language, isRTL } = useLanguage();
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -152,8 +153,10 @@ const ClaimsManage = () => {
           flexGrow: 1,
           backgroundColor: "#f4f6f9",
           minHeight: "100vh",
-          marginLeft: isRTL ? 0 : "240px",
-          marginRight: isRTL ? "240px" : 0,
+          marginLeft: isRTL ? 0 : { xs: 0, sm: "72px", md: "240px" },
+          marginRight: isRTL ? { xs: 0, sm: "72px", md: "240px" } : 0,
+          pt: { xs: "56px", sm: 0 },
+          transition: "margin 0.3s ease",
         }}
       >
         <Header />
@@ -164,10 +167,10 @@ const ClaimsManage = () => {
             gutterBottom
             sx={{ color: "#120460" }}
           >
-            Claims Management
+            {t("claimsManagementTitle", language)}
           </Typography>
           <Typography variant="body1" color="text.secondary" gutterBottom>
-            Review and manage submitted claims.
+            {t("reviewManageClaims", language)}
           </Typography>
 
           {/* Loading */}
@@ -188,7 +191,7 @@ const ClaimsManage = () => {
                         fontWeight="bold"
                         sx={{ mb: 1, color: "#1E8EAB" }}
                       >
-                        General Information
+                        {t("generalInformationTitle", language)}
                       </Typography>
                       <Stack spacing={1}>
                         <Typography variant="body2">

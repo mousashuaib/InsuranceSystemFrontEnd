@@ -24,9 +24,10 @@ import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import UploadIcon from "@mui/icons-material/Upload";
 import axios from "axios";
 import { useLanguage } from "../../../context/LanguageContext";
+import { t } from "../../../config/translations";
 
 const ClientList = () => {
-  const { isRTL } = useLanguage();
+  const { language, isRTL } = useLanguage();
   const [clients, setClients] = useState([]);
   const [editClient, setEditClient] = useState(null);
   const [formData, setFormData] = useState({});
@@ -159,8 +160,10 @@ const ClientList = () => {
           flexGrow: 1,
           backgroundColor: "#f4f6f9",
           minHeight: "100vh",
-          marginLeft: isRTL ? 0 : "240px",
-          marginRight: isRTL ? "240px" : 0,
+          marginLeft: isRTL ? 0 : { xs: 0, sm: "72px", md: "240px" },
+          marginRight: isRTL ? { xs: 0, sm: "72px", md: "240px" } : 0,
+          pt: { xs: "56px", sm: 0 },
+          transition: "margin 0.3s ease",
         }}
       >
         <Header />
@@ -171,8 +174,8 @@ const ClientList = () => {
             gutterBottom
             sx={{ color: "#120460", display: "flex", alignItems: "center" }}
           >
-            <AssignmentIndIcon sx={{ mr: 1, fontSize: 35, color: "#1E8EAB" }} />
-            Clients
+            <AssignmentIndIcon sx={{ mr: isRTL ? 0 : 1, ml: isRTL ? 1 : 0, fontSize: 35, color: "#1E8EAB" }} />
+            {t("clients", language)}
           </Typography>
 
           <Divider sx={{ my: 3 }} />
@@ -190,7 +193,7 @@ const ClientList = () => {
                     fontWeight="bold"
                     sx={{ color: "#1E8EAB" }}
                   >
-                    General Info
+                    {t("generalInformationTitle", language)}
                   </Typography>
                   <Stack spacing={1}>
                     <Typography variant="body2">

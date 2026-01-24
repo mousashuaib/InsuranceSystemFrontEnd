@@ -92,8 +92,9 @@ const ManagerConsultationPrices = () => {
         component="main"
         sx={{
           flex: 1,
-          marginLeft: isRTL ? 0 : { xs: "75px", md: "240px" },
-          marginRight: isRTL ? { xs: "75px", md: "240px" } : 0,
+          marginLeft: isRTL ? 0 : { xs: 0, sm: "72px", md: "240px" },
+          marginRight: isRTL ? { xs: 0, sm: "72px", md: "240px" } : 0,
+          pt: { xs: "56px", sm: 0 },
           transition: "margin 0.3s ease",
           minHeight: "100vh",
           display: "flex",

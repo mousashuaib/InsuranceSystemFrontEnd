@@ -262,8 +262,10 @@ setClients(sorted);
           flexGrow: 1,
           backgroundColor: "#f4f6f9",
           minHeight: "100vh",
-          marginLeft: isRTL ? 0 : "240px",
-          marginRight: isRTL ? "240px" : 0,
+          marginLeft: isRTL ? 0 : { xs: 0, sm: "72px", md: "240px" },
+          marginRight: isRTL ? { xs: 0, sm: "72px", md: "240px" } : 0,
+          pt: { xs: "56px", sm: 0 },
+          transition: "margin 0.3s ease",
         }}
       >
         <Header />
@@ -274,8 +276,8 @@ setClients(sorted);
             gutterBottom
             sx={{ color: "#120460", display: "flex", alignItems: "center" }}
           >
-            <AssignmentIndIcon sx={{ mr: 1, fontSize: 35, color: "#1E8EAB" }} />
-            Clients
+            <AssignmentIndIcon sx={{ mr: isRTL ? 0 : 1, ml: isRTL ? 1 : 0, fontSize: 35, color: "#1E8EAB" }} />
+            {t("clients", language)}
           </Typography>
 
           {/* Role Filter */}
@@ -291,15 +293,15 @@ setClients(sorted);
                 letterSpacing: "0.5px",
               }}
             >
-              Filter by Role
+              {t("filterByRole", language)}
             </Typography>
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               {[
-                { role: "ALL", label: "All", count: roleFilterCounts.all },
-                { role: "DOCTOR", label: "Doctor", count: roleFilterCounts.doctor },
-                { role: "PHARMACIST", label: "Pharmacist", count: roleFilterCounts.pharmacist },
-                { role: "RADIOLOGIST", label: "Radiologist", count: roleFilterCounts.radiologist },
-                { role: "LAB_TECH", label: "Lab Tech", count: roleFilterCounts.labTech },
+                { role: "ALL", label: t("all", language), count: roleFilterCounts.all },
+                { role: "DOCTOR", label: t("doctor", language), count: roleFilterCounts.doctor },
+                { role: "PHARMACIST", label: t("pharmacist", language), count: roleFilterCounts.pharmacist },
+                { role: "RADIOLOGIST", label: t("radiologist", language), count: roleFilterCounts.radiologist },
+                { role: "LAB_TECH", label: t("labTech", language), count: roleFilterCounts.labTech },
               ].map(({ role, label, count }) => (
                 <Chip
                   key={role}
@@ -319,8 +321,8 @@ setClients(sorted);
 
           {/* Results Count */}
           <Typography variant="body1" sx={{ mb: 2, color: "text.secondary" }}>
-            Showing <strong>{clients.length}</strong> client{clients.length !== 1 ? 's' : ''}
-            {filterRole !== "ALL" && ` with ${filterRole.replace('_', ' ')} role`}
+            {t("showingClients", language)} <strong>{clients.length}</strong> {clients.length !== 1 ? t("clientsCount", language) : t("clientCount", language)}
+            {filterRole !== "ALL" && ` ${t("withRole", language)} ${filterRole.replace('_', ' ')} ${t("role", language)}`}
           </Typography>
 
           {/* ✅ التبويبين */}
@@ -336,8 +338,8 @@ setClients(sorted);
               boxShadow: 1,
             }}
           >
-            <Tab label={`Active Clients (${activeClients.length})`} />
-            <Tab label={`Deactivated Clients (${deactivatedClients.length})`} />
+            <Tab label={`${t("activeClients", language)} (${activeClients.length})`} />
+            <Tab label={`${t("deactivatedClients", language)} (${deactivatedClients.length})`} />
     </Tabs>
 
 

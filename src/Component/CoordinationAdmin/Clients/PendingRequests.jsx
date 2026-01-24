@@ -213,8 +213,10 @@ const _fetchClientFamily = async (client) => {
           flexGrow: 1,
           backgroundColor: "#f4f6f9",
           minHeight: "100vh",
-          marginLeft: isRTL ? 0 : "240px",
-          marginRight: isRTL ? "240px" : 0,
+          marginLeft: isRTL ? 0 : { xs: 0, sm: "72px", md: "240px" },
+          marginRight: isRTL ? { xs: 0, sm: "72px", md: "240px" } : 0,
+          pt: { xs: "56px", sm: 0 },
+          transition: "margin 0.3s ease",
         }}
       >
         <Header />
@@ -224,11 +226,11 @@ const _fetchClientFamily = async (client) => {
             fontWeight="bold"
             sx={{ color: "#120460", display: "flex", alignItems: "center" }}
           >
-            <GroupAddIcon sx={{ mr: 1, fontSize: 35, color: "#1E8EAB" }} />
-            Client Role Requests
+            <GroupAddIcon sx={{ mr: isRTL ? 0 : 1, ml: isRTL ? 1 : 0, fontSize: 35, color: "#1E8EAB" }} />
+            {t("clientRoleRequests", language)}
           </Typography>
           <Typography variant="body1" color="text.secondary" gutterBottom>
-            Review and manage client registration and role requests.
+            {t("reviewManageRoleRequests", language)}
           </Typography>
 
           {/* Role Filter */}
@@ -244,30 +246,30 @@ const _fetchClientFamily = async (client) => {
                 letterSpacing: "0.5px",
               }}
             >
-              Filter by Requested Role
+              {t("filterByRequestedRole", language)}
             </Typography>
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               {[
-                { role: "ALL", label: "All", count: allClients.length },
-                { 
-                  role: "DOCTOR", 
-                  label: "Doctor", 
-                  count: allClients.filter((c) => c.requestedRole?.toUpperCase() === "DOCTOR").length 
+                { role: "ALL", label: t("all", language), count: allClients.length },
+                {
+                  role: "DOCTOR",
+                  label: t("doctor", language),
+                  count: allClients.filter((c) => c.requestedRole?.toUpperCase() === "DOCTOR").length
                 },
-                { 
-                  role: "PHARMACIST", 
-                  label: "Pharmacist", 
-                  count: allClients.filter((c) => c.requestedRole?.toUpperCase() === "PHARMACIST").length 
+                {
+                  role: "PHARMACIST",
+                  label: t("pharmacist", language),
+                  count: allClients.filter((c) => c.requestedRole?.toUpperCase() === "PHARMACIST").length
                 },
-                { 
-                  role: "RADIOLOGIST", 
-                  label: "Radiologist", 
-                  count: allClients.filter((c) => c.requestedRole?.toUpperCase() === "RADIOLOGIST").length 
+                {
+                  role: "RADIOLOGIST",
+                  label: t("radiologist", language),
+                  count: allClients.filter((c) => c.requestedRole?.toUpperCase() === "RADIOLOGIST").length
                 },
-                { 
-                  role: "LAB_TECH", 
-                  label: "Lab Tech", 
-                  count: allClients.filter((c) => c.requestedRole?.toUpperCase() === "LAB_TECH").length 
+                {
+                  role: "LAB_TECH",
+                  label: t("labTech", language),
+                  count: allClients.filter((c) => c.requestedRole?.toUpperCase() === "LAB_TECH").length
                 },
                 
               ].map(({ role, label, count }) => (

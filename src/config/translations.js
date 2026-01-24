@@ -1341,6 +1341,25 @@ const translations = {
     averagePrice: "Average Price",
     searchSpecialization: "Search specialization...",
     consultationPricesNote: "Prices shown are consultation fees only. Additional costs may apply for lab tests, medications, and other services.",
+
+    // Coordination Admin - Client Management
+    clients: "Clients",
+    filterByRole: "Filter by Role",
+    filterByRequestedRole: "Filter by Requested Role",
+    activeClients: "Active Clients",
+    deactivatedClients: "Deactivated Clients",
+    showingClients: "Showing",
+    clientsCount: "clients",
+    clientCount: "client",
+    withRole: "with",
+    role: "role",
+    clientRoleRequests: "Client Role Requests",
+    reviewManageRoleRequests: "Review and manage client registration and role requests.",
+
+    // Claims Management
+    claimsManagementTitle: "Claims Management",
+    reviewManageClaims: "Review and manage submitted claims.",
+    generalInformationTitle: "General Information",
   },
 
   ar: {
@@ -2685,6 +2704,25 @@ const translations = {
     averagePrice: "متوسط السعر",
     searchSpecialization: "ابحث عن تخصص...",
     consultationPricesNote: "الأسعار المعروضة هي رسوم الاستشارة فقط. قد تنطبق تكاليف إضافية للفحوصات المخبرية والأدوية والخدمات الأخرى.",
+
+    // Coordination Admin - Client Management
+    clients: "العملاء",
+    filterByRole: "تصفية حسب الدور",
+    filterByRequestedRole: "تصفية حسب الدور المطلوب",
+    activeClients: "العملاء النشطون",
+    deactivatedClients: "العملاء غير النشطين",
+    showingClients: "عرض",
+    clientsCount: "عملاء",
+    clientCount: "عميل",
+    withRole: "بدور",
+    role: "دور",
+    clientRoleRequests: "طلبات أدوار العملاء",
+    reviewManageRoleRequests: "مراجعة وإدارة طلبات تسجيل العملاء والأدوار.",
+
+    // Claims Management
+    claimsManagementTitle: "إدارة المطالبات",
+    reviewManageClaims: "مراجعة وإدارة المطالبات المقدمة.",
+    generalInformationTitle: "المعلومات العامة",
   },
 };
 

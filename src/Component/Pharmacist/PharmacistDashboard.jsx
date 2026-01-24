@@ -467,13 +467,10 @@ const PharmacistDashboard = () => {
           overflowX: "hidden",
           backgroundColor: "#FAF8F5",
           height: "100vh",
-          marginLeft: isRTL ? 0 : "240px",
-          marginRight: isRTL ? "240px" : 0,
+          marginLeft: isRTL ? 0 : { xs: 0, sm: "72px", md: "240px" },
+          marginRight: isRTL ? { xs: 0, sm: "72px", md: "240px" } : 0,
+          pt: { xs: "56px", sm: 0 },
           transition: "margin 0.3s ease",
-          "@media (max-width: 600px)": {
-            marginLeft: isRTL ? 0 : "75px",
-            marginRight: isRTL ? "75px" : 0,
-          },
           "&::-webkit-scrollbar": {
             width: "8px",
           },

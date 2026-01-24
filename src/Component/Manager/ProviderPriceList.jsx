@@ -517,7 +517,7 @@ const ProviderPriceList = () => {
     <Box sx={{ display: "flex" }}>
       <Sidebar />
 
-      <Box dir={isRTL ? "rtl" : "ltr"} sx={{ flexGrow: 1, background: "#FAF8F5", marginLeft: isRTL ? 0 : "240px", marginRight: isRTL ? "240px" : 0, minHeight: "100vh" }}>
+      <Box dir={isRTL ? "rtl" : "ltr"} sx={{ flexGrow: 1, background: "#FAF8F5", marginLeft: isRTL ? 0 : { xs: 0, sm: "72px", md: "240px" }, marginRight: isRTL ? { xs: 0, sm: "72px", md: "240px" } : 0, pt: { xs: "56px", sm: 0 }, transition: "margin 0.3s ease", minHeight: "100vh" }}>
         <Header />
 
         <Box sx={{ p: 3 }}>
