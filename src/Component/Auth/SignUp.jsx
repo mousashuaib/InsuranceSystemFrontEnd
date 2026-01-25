@@ -266,8 +266,9 @@ const SignUp = memo(function SignUp({ setMode, setPendingEmail }) {
       if (selectedRole === "DOCTOR") {
         setLoadingSpecializations(true);
         try {
-          const res = await api.get(API_ENDPOINTS.DOCTOR.SPECIALIZATIONS);
-          setSpecializations(res.data || []);
+          // api.get returns response.data directly
+          const specializationsData = await api.get(API_ENDPOINTS.DOCTOR.SPECIALIZATIONS);
+          setSpecializations(specializationsData || []);
         } catch (err) {
           logger.error("Error fetching specializations:", err);
           setSpecializations([]);

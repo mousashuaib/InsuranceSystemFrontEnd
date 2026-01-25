@@ -61,9 +61,10 @@ const MedicalAdminProfile = () => {
       }
 
       try {
-        const res = await api.get(API_ENDPOINTS.AUTH.ME);
-        setProfile(res.data);
-        setFormData(res.data);
+        // api.get returns response.data directly
+        const profileData = await api.get(API_ENDPOINTS.AUTH.ME);
+        setProfile(profileData);
+        setFormData(profileData);
       } catch (err) {
         console.error("❌ Failed to load profile:", err);
       }
@@ -112,7 +113,8 @@ const MedicalAdminProfile = () => {
 
       if (selectedFile) multipartData.append("universityCard", selectedFile);
 
-      const res = await api.patch(
+      // api.patch returns response.data directly
+      const responseData = await api.patch(
         `${API_ENDPOINTS.CLIENTS.BASE}/update/${profile.id}`,
         multipartData,
         {
@@ -122,13 +124,13 @@ const MedicalAdminProfile = () => {
         }
       );
 
-      setProfile(res.data);
-      setFormData(res.data);
+      setProfile(responseData);
+      setFormData(responseData);
       setPreviewImage(null);
       setSelectedFile(null);
       setEditMode(false);
 
-      console.log("✅ Profile updated:", res.data);
+      console.log("✅ Profile updated:", responseData);
     } catch (err) {
       console.error("❌ Update failed:", err);
       alert("Update failed.");

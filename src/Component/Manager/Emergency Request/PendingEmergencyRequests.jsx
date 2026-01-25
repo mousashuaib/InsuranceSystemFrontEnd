@@ -15,8 +15,6 @@ import axios from "axios";
 
 import ManagerSidebar from "../Sidebar";
 import ManagerHeader from "../Header";
-import EmergencySidebar from "../../EmergencyManager/EmergencySidebar";
-import EmergencyHeader from "../../EmergencyManager/EmergencyHeader";
 
 import PersonIcon from "@mui/icons-material/Person";
 import PhoneIcon from "@mui/icons-material/Phone";
@@ -37,8 +35,7 @@ const PendingEmergencyRequests = () => {
   const [rejectReason, setRejectReason] = useState("");
   const [currentRequestId, setCurrentRequestId] = useState(null);
 
-  const roles = JSON.parse(localStorage.getItem("roles") || "[]");
-  const isEmergencyManager = roles.includes("EMERGENCY_MANAGER");
+  // Note: EMERGENCY_MANAGER role was removed - this component is now Manager-only
 
   const token = localStorage.getItem("token");
 
@@ -129,10 +126,10 @@ const PendingEmergencyRequests = () => {
 
   return (
     <Box sx={{ display: "flex" }}>
-      {isEmergencyManager ? <EmergencySidebar /> : <ManagerSidebar />}
+      <ManagerSidebar />
 
       <Box sx={{ flexGrow: 1, background: "#f9fafc", minHeight: "100vh", marginLeft: "240px" }}>
-        {isEmergencyManager ? <EmergencyHeader /> : <ManagerHeader />}
+        <ManagerHeader />
 
         <Box sx={{ p: 3 }}>
           <Typography variant="h4" fontWeight="bold" sx={{ color: "#120460", mb: 3 }}>

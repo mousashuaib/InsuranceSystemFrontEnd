@@ -56,9 +56,10 @@ const getUniversityCardSrc = (profile, previewImage) => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await api.get(API_ENDPOINTS.AUTH.ME);
-        setProfile(res.data);
-        setFormData(res.data);
+        // api.get returns response.data directly
+        const profileData = await api.get(API_ENDPOINTS.AUTH.ME);
+        setProfile(profileData);
+        setFormData(profileData);
       } catch (err) {
         console.error("❌ Failed to load profile:", err);
       }
@@ -102,7 +103,8 @@ const handleSave = async () => {
 
     if (selectedFile) multipartData.append("universityCard", selectedFile);
 
-    const res = await api.patch(
+    // api.patch returns response.data directly
+    const responseData = await api.patch(
       `/api/clients/update/${profile.id}`,
       multipartData,
       {
@@ -112,8 +114,8 @@ const handleSave = async () => {
       }
     );
 
-    setProfile(res.data);
-    setFormData(res.data);
+    setProfile(responseData);
+    setFormData(responseData);
     setPreviewImage(null);
     setSelectedFile(null);
     setEditMode(false);

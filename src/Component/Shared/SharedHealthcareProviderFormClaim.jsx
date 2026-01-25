@@ -99,13 +99,14 @@ const SharedHealthcareProviderFormClaim = ({ userRole = "DOCTOR", onAdded }) => 
         { signal: abortControllerRef.current.signal }
       );
 
-      if (res.data && res.data.id) {
+      // api.get returns response.data directly
+      if (res && res.id) {
         setClientStatus({
           found: true,
-          message: `✅ Patient found: ${res.data.fullName}`,
-          clientData: res.data,
+          message: `✅ Patient found: ${res.fullName}`,
+          clientData: res,
         });
-        setClaim((prev) => ({ ...prev, clientId: res.data.id }));
+        setClaim((prev) => ({ ...prev, clientId: res.id }));
       } else {
         setClientStatus({
           found: false,
@@ -290,7 +291,8 @@ const SharedHealthcareProviderFormClaim = ({ userRole = "DOCTOR", onAdded }) => 
         formData.append("document", claim.document);
       }
 
-      const res = await api.post(
+      // api.post returns response.data directly
+      const responseData = await api.post(
         API_ENDPOINTS.HEALTHCARE_CLAIMS.SUBMIT,
         formData,
         {
@@ -300,7 +302,7 @@ const SharedHealthcareProviderFormClaim = ({ userRole = "DOCTOR", onAdded }) => 
         }
       );
 
-      if (onAdded) onAdded(res.data);
+      if (onAdded) onAdded(responseData);
 
       setSnackbar({
         open: true,

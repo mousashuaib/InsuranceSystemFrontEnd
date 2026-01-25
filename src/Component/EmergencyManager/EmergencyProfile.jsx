@@ -49,9 +49,10 @@ const EmergencyProfile = () => {
     }
 
     try {
-      const res = await api.get(API_ENDPOINTS.AUTH.ME);
-      setProfile(res.data);
-      setFormData(res.data);
+      // api.get returns response.data directly
+      const profileData = await api.get(API_ENDPOINTS.AUTH.ME);
+      setProfile(profileData);
+      setFormData(profileData);
     } catch (err) {
       console.error("Failed to load profile:", err.response?.data || err.message);
     }
@@ -100,7 +101,8 @@ const EmergencyProfile = () => {
         multipartData.append("universityCard", selectedFile);
       }
 
-      const res = await api.patch(
+      // api.patch returns response.data directly
+      const responseData = await api.patch(
         `${API_ENDPOINTS.CLIENTS.UPDATE}/${profile.id}`,
         multipartData,
         {
@@ -110,12 +112,12 @@ const EmergencyProfile = () => {
         }
       );
 
-      setProfile(res.data);
-      setFormData(res.data);
+      setProfile(responseData);
+      setFormData(responseData);
       setPreviewImage(null);
       setSelectedFile(null);
       setEditMode(false);
-      console.log("Emergency Manager profile updated:", res.data);
+      console.log("Emergency Manager profile updated:", responseData);
     } catch (err) {
       console.error("Update failed:", err.response?.data || err.message);
       alert("Update failed, check console.");

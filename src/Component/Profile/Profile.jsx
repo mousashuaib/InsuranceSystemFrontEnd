@@ -101,7 +101,8 @@ const handleSave = async () => {
       form.append("universityCard", selectedFile);
     }
 
-    const res = await api.patch(
+    // api.patch returns response.data directly
+    const responseData = await api.patch(
       API_ENDPOINTS.CLIENTS.ME_UPDATE,
       form,
       {
@@ -111,15 +112,15 @@ const handleSave = async () => {
       }
     );
 
-    setUser(res.data);
-    localStorage.setItem("clientUser", JSON.stringify(res.data));
+    setUser(responseData);
+    localStorage.setItem("clientUser", JSON.stringify(responseData));
 
     setFormData((prev) => ({
       ...prev,
-      universityCardImages: res.data.universityCardImages || [],
+      universityCardImages: responseData.universityCardImages || [],
     }));
 
-    const imgs = res.data.universityCardImages || [];
+    const imgs = responseData.universityCardImages || [];
     const lastImg = imgs[imgs.length - 1];
     if (lastImg) {
       setPreviewImage(`${API_BASE_URL}${lastImg}?t=${Date.now()}`);

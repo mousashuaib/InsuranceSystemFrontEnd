@@ -95,8 +95,9 @@ const ClientDashboard = () => {
   // Fast refresh for notification counter only
   const refreshUnreadCount = useCallback(async () => {
     try {
-      const notifRes = await api.get(API_ENDPOINTS.NOTIFICATIONS.UNREAD_COUNT);
-      const count = typeof notifRes.data === 'number' ? notifRes.data : parseInt(notifRes.data) || 0;
+      // api.get returns response.data directly
+      const notifData = await api.get(API_ENDPOINTS.NOTIFICATIONS.UNREAD_COUNT);
+      const count = typeof notifData === 'number' ? notifData : parseInt(notifData) || 0;
       setUnreadCount(count);
     } catch (err) {
       logger.error("Error fetching unread count:", err);
@@ -107,8 +108,9 @@ const ClientDashboard = () => {
   // Fetch Healthcare Providers
   const fetchProviders = useCallback(async () => {
     try {
-      const res = await api.get(API_ENDPOINTS.SEARCH_PROFILES.APPROVED);
-      const withLocations = (res.data || []).filter(
+      // api.get returns response.data directly
+      const providersData = await api.get(API_ENDPOINTS.SEARCH_PROFILES.APPROVED);
+      const withLocations = (providersData || []).filter(
         (p) => p.locationLat && p.locationLng
       );
       setProviders(withLocations);

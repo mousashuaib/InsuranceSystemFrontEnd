@@ -138,19 +138,20 @@ const LabProfileComponent = ({ userInfo, setUser, refresh }) => {
         form.append("universityCard", selectedFile);
       }
 
-      const res = await api.patch("/api/labs/me/update", form, {
+      // api.patch returns response.data directly
+      const responseData = await api.patch("/api/labs/me/update", form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
       // ✅ تحديث البيانات
-      setUser(res.data);
-      localStorage.setItem("labUserInfo", JSON.stringify(res.data));
+      setUser(responseData);
+      localStorage.setItem("labUserInfo", JSON.stringify(responseData));
       if (refresh) refresh();
 
       // Handle both single image and array format
-      let newImagePath = res.data.universityCardImage || "";
-      if (!newImagePath && res.data.universityCardImages && res.data.universityCardImages.length > 0) {
-        newImagePath = res.data.universityCardImages[res.data.universityCardImages.length - 1];
+      let newImagePath = responseData.universityCardImage || "";
+      if (!newImagePath && responseData.universityCardImages && responseData.universityCardImages.length > 0) {
+        newImagePath = responseData.universityCardImages[responseData.universityCardImages.length - 1];
       }
 
       // ✅ تحديث الصورة مباشرة مع منع الكاش

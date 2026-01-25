@@ -928,6 +928,7 @@ const PolicyList = () => {
                 >
                   <MenuItem value="ACTIVE">{t("active", language)}</MenuItem>
                   <MenuItem value="INACTIVE">{t("inactive", language)}</MenuItem>
+                  <MenuItem value="EXPIRED">{t("expired", language)}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>

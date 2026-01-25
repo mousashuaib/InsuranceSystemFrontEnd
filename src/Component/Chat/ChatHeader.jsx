@@ -38,14 +38,15 @@ const ChatHeader = memo(function ChatHeader() {
     if (!token) return;
 
     try {
-      const res = await api.get(API_ENDPOINTS.AUTH.ME);
-      setFullName(res.data.fullName);
-      setRoles(res.data.roles || []);
+      // api.get returns response.data directly
+      const profileData = await api.get(API_ENDPOINTS.AUTH.ME);
+      setFullName(profileData.fullName);
+      setRoles(profileData.roles || []);
 
-      if (res.data.id) localStorage.setItem("userId", res.data.id);
+      if (profileData.id) localStorage.setItem("userId", profileData.id);
 
-      if (res.data.universityCardImage) {
-        const imgPath = res.data.universityCardImage;
+      if (profileData.universityCardImage) {
+        const imgPath = profileData.universityCardImage;
         setProfileImage(`${API_BASE_URL}${imgPath}`);
         localStorage.setItem("profileImage", imgPath);
       }
@@ -59,8 +60,9 @@ const ChatHeader = memo(function ChatHeader() {
     if (!token) return;
 
     try {
-      const res = await api.get(API_ENDPOINTS.NOTIFICATIONS.UNREAD_COUNT);
-      setUnreadCount(res.data);
+      // api.get returns response.data directly
+      const unreadData = await api.get(API_ENDPOINTS.NOTIFICATIONS.UNREAD_COUNT);
+      setUnreadCount(unreadData || 0);
     } catch (err) {
       console.error("Failed to fetch unread count:", err);
     }

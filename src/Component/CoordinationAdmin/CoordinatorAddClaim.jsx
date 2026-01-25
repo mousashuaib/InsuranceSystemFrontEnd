@@ -101,15 +101,17 @@ const CoordinatorAddClaim = ({ onAdded }) => {
 
     setSearching(true);
     try {
-      const res = await api.get(API_ENDPOINTS.CLIENTS.SEARCH_BY_EMPLOYEE_ID(employeeId));
+      // api.get returns response.data directly
+      const clientData = await api.get(API_ENDPOINTS.CLIENTS.SEARCH_BY_EMPLOYEE_ID(employeeId));
 
-      setSelectedClient(res.data);
-      setClientId(res.data.id);
+      setSelectedClient(clientData);
+      setClientId(clientData.id);
 
       // Fetch family members for this client
       try {
-        const familyRes = await api.get(API_ENDPOINTS.FAMILY_MEMBERS.BY_CLIENT(res.data.id));
-        const approvedMembers = familyRes.data.filter(
+        // api.get returns response.data directly
+        const familyData = await api.get(API_ENDPOINTS.FAMILY_MEMBERS.BY_CLIENT(clientData.id));
+        const approvedMembers = (familyData || []).filter(
           (member) => member.status === "APPROVED"
         );
         setFamilyMembers(approvedMembers);
@@ -199,7 +201,8 @@ const CoordinatorAddClaim = ({ onAdded }) => {
         formData.append("document", newClaim.invoiceImagePath[0]);
       }
 
-      const res = await api.post(
+      // api.post returns response.data directly
+      const responseData = await api.post(
         "/api/healthcare-provider-claims/admin/create-direct",
         formData,
         {
@@ -209,7 +212,7 @@ const CoordinatorAddClaim = ({ onAdded }) => {
         }
       );
 
-      if (onAdded) onAdded(res.data);
+      if (onAdded) onAdded(responseData);
 
       setSnackbar({
         open: true,

@@ -94,10 +94,11 @@ const UserChat = () => {
     setLoading(true);
     setError("");
 
+    // api.get returns response.data directly
     api
       .get(`${API_ENDPOINTS.CHAT.USERS}?currentUserId=${currentUserId}`)
-      .then((res) => {
-        const filtered = res.data.filter(
+      .then((usersData) => {
+        const filtered = (usersData || []).filter(
           (u) =>
             u.id !== currentUserId &&
             !u.roles?.some((r) => r.name === "INSURANCE_CLIENT")
@@ -122,9 +123,10 @@ const UserChat = () => {
     setLoading(true);
 
     try {
-      const res = await api.get(`${API_ENDPOINTS.CHAT.MESSAGES}/conversations/${currentUserId}`);
+      // api.get returns response.data directly
+      const conversationsData = await api.get(`${API_ENDPOINTS.CHAT.MESSAGES}/conversations/${currentUserId}`);
 
-      const conv = res.data.find((c) =>
+      const conv = (conversationsData || []).find((c) =>
         c.messages?.some(
           (m) =>
             (m.senderId === u.id && m.receiverId === currentUserId) ||

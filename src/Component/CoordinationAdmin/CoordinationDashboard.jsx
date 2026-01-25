@@ -23,9 +23,9 @@ const CoordinationDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch providers for map
-        const providersRes = await api.get(API_ENDPOINTS.SEARCH_PROFILES.APPROVED);
-        const withLocations = (providersRes.data || []).filter(
+        // Fetch providers for map - api.get returns response.data directly
+        const providersData = await api.get(API_ENDPOINTS.SEARCH_PROFILES.APPROVED);
+        const withLocations = (providersData || []).filter(
           (p) => p.locationLat && p.locationLng
         );
         setProviders(withLocations);

@@ -41,9 +41,8 @@ const EmergencyDashboard = () => {
       const token = getToken();
       if (!token) return;
 
-      const res = await api.get(API_ENDPOINTS.EMERGENCIES.ALL);
-
-      const data = res.data || [];
+      // api.get returns response.data directly
+      const data = await api.get(API_ENDPOINTS.EMERGENCIES.ALL) || [];
       setStats({
         pendingEmergencies: data.filter((r) => r.status === "PENDING").length,
         approvedEmergencies: data.filter((r) => r.status === "APPROVED").length,
@@ -71,8 +70,9 @@ const EmergencyDashboard = () => {
       setLoading(true);
       const token = getToken();
       if (!token) return;
-      const res = await api.get(`${API_ENDPOINTS.SEARCH_PROFILES.BY_NAME}?name=${value}`);
-      setResults(res.data);
+      // api.get returns response.data directly
+      const searchResults = await api.get(`${API_ENDPOINTS.SEARCH_PROFILES.BY_NAME}?name=${value}`);
+      setResults(searchResults || []);
     } catch (err) {
       console.error("Search failed:", err);
     } finally {

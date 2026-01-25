@@ -132,28 +132,29 @@ const PharmacistProfileComponent = ({ userInfo, setUser }) => {
         form.append("universityCard", selectedFile);
       }
 
-      const res = await api.patch("/api/prescriptions/pharmacist/me/update", form, {
+      // api.patch returns response.data directly
+      const responseData = await api.patch("/api/prescriptions/pharmacist/me/update", form, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
 
       // ✅ تحديث البيانات
-      setUser(res.data);
-      localStorage.setItem("pharmacistUser", JSON.stringify(res.data));
+      setUser(responseData);
+      localStorage.setItem("pharmacistUser", JSON.stringify(responseData));
 
       // Handle both single image and array format
-      let newImagePath = res.data.universityCardImage || "";
-      if (!newImagePath && res.data.universityCardImages && res.data.universityCardImages.length > 0) {
-        newImagePath = res.data.universityCardImages[res.data.universityCardImages.length - 1];
+      let newImagePath = responseData.universityCardImage || "";
+      if (!newImagePath && responseData.universityCardImages && responseData.universityCardImages.length > 0) {
+        newImagePath = responseData.universityCardImages[responseData.universityCardImages.length - 1];
       }
 
       // ✅ تحديث الـ formData
       setFormData((prev) => ({
         ...prev,
-        fullName: res.data.fullName || prev.fullName,
-        email: res.data.email || prev.email,
-        phone: res.data.phone || prev.phone,
+        fullName: responseData.fullName || prev.fullName,
+        email: responseData.email || prev.email,
+        phone: responseData.phone || prev.phone,
         universityCardImage: newImagePath || prev.universityCardImage,
       }));
 

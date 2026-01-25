@@ -509,6 +509,7 @@ onChange={(e) => {
           onChange={(e) => updateFamilyMember(index, "relation", e.target.value)}
         >
           <MenuItem value="WIFE">Wife</MenuItem>
+          <MenuItem value="HUSBAND">Husband</MenuItem>
           <MenuItem value="SON">Son</MenuItem>
           <MenuItem value="DAUGHTER">Daughter</MenuItem>
           <MenuItem value="FATHER">Father</MenuItem>
