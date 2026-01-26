@@ -167,7 +167,7 @@ const LandingPage = memo(function LandingPage() {
         id="hero"
         sx={{
           background: `linear-gradient(135deg, ${oliveTheme.primaryDark} 0%, ${oliveTheme.primary} 50%, ${oliveTheme.primaryLight} 100%)`,
-          minHeight: { xs: "auto", md: "150vh" },
+          minHeight: { xs: "auto", md: "100vh" },
           display: "flex",
           flexDirection: "column",
           position: "relative",

@@ -1,7 +1,3 @@
-/**
- * Centralized API Service
- * Handles all API requests with proper error handling, token management, and interceptors
- */
 
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
