@@ -1,25 +1,26 @@
-import React, { memo } from "react";
+// src/Component/Radiology/RadiologyRequestCard.jsx
+import React, { memo, useState } from "react";
 import PropTypes from "prop-types";
 import {
-  Card,
-  CardContent,
-  Paper,
+  Box,
   Typography,
   Chip,
-  Button,
   Stack,
+  Button,
+  Card,
+  CardContent,
   Avatar,
-  Box,
-  Grid,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Divider,
 } from "@mui/material";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 import PersonIcon from "@mui/icons-material/Person";
-import EventIcon from "@mui/icons-material/Event";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
-import DescriptionIcon from "@mui/icons-material/Description";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import { API_BASE_URL } from "../../config/api";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useLanguage } from "../../context/LanguageContext";
 import { t } from "../../config/translations";
 
@@ -29,828 +30,254 @@ const RadiologyRequestCard = memo(({
   status,
   familyMemberInfo,
   patientEmployeeId,
-  universityCardImage,
   displayAge,
   displayGender,
   formatDate,
   onOpenUploadDialog,
-  onImageClick,
 }) => {
-  const { language, isRTL } = useLanguage();
+  const { language } = useLanguage();
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+
+  // Get patient display info
+  const isFamilyMember = !!familyMemberInfo;
+  const patientName = isFamilyMember ? familyMemberInfo?.name : request.memberName;
+  const patientAge = isFamilyMember ? familyMemberInfo?.age : displayAge;
+  const patientGender = isFamilyMember ? familyMemberInfo?.gender : displayGender;
+
+  // Get status-based styling
+  const getStatusCardStyle = (statusName) => {
+    switch (statusName?.toLowerCase()) {
+      case "pending":
+        return { borderColor: "#FF9800", textColor: "#E65100" };
+      case "in_progress":
+        return { borderColor: "#2196F3", textColor: "#1565C0" };
+      case "completed":
+        return { borderColor: "#4CAF50", textColor: "#2E7D32" };
+      case "rejected":
+        return { borderColor: "#F44336", textColor: "#C62828" };
+      default:
+        return { borderColor: "#556B2F", textColor: "#556B2F" };
+    }
+  };
+
+  const cardStyle = getStatusCardStyle(request.status);
 
   return (
-    <Card
-      elevation={0}
-      sx={{
-        borderRadius: 3,
-        height: "100%",
-        minHeight: 480,
-        display: "flex",
-        flexDirection: "column",
-        border: "1px solid #E8EDE0",
-        overflow: "hidden",
-        transition: "all 0.3s ease",
-        "&:hover": {
-          transform: "translateY(-8px)",
-          boxShadow: "0 12px 40px rgba(85, 107, 47, 0.2)",
-          borderColor: "#556B2F",
-        },
-      }}
-    >
-      {/* Card Header with Title */}
-      <Box
+    <>
+      <Card
+        elevation={0}
         sx={{
-          background: "linear-gradient(135deg, #556B2F 0%, #7B8B5E 100%)",
-          p: 2,
-          color: "white",
-          position: "relative",
+          borderRadius: 3,
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          border: `2px solid ${cardStyle.borderColor}30`,
+          bgcolor: "#fff",
           overflow: "hidden",
+          transition: "all 0.2s ease",
+          "&:hover": {
+            transform: "translateY(-4px)",
+            boxShadow: `0 12px 32px ${cardStyle.borderColor}20`,
+            borderColor: cardStyle.borderColor,
+          },
         }}
       >
-        {/* Icon Background */}
+        {/* Compact Header */}
         <Box
           sx={{
-            position: "absolute",
-            right: -10,
-            top: "50%",
-            transform: "translateY(-50%)",
-            fontSize: "3rem",
-            opacity: 0.15,
+            background: `linear-gradient(135deg, ${cardStyle.borderColor} 0%, ${cardStyle.borderColor}dd 100%)`,
+            px: 2,
+            py: 1.5,
+            color: "white",
           }}
         >
-          <LocalHospitalIcon sx={{ fontSize: 80 }} />
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <LocalHospitalIcon sx={{ fontSize: 20 }} />
+              <Typography variant="subtitle2" fontWeight={700}>
+                #{index + 1}
+              </Typography>
+            </Stack>
+            <Chip
+              label={status.label}
+              size="small"
+              sx={{
+                bgcolor: "white",
+                color: cardStyle.borderColor,
+                fontWeight: 600,
+                height: 24,
+                fontSize: "0.7rem",
+              }}
+            />
+          </Stack>
         </Box>
 
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          sx={{ position: "relative", zIndex: 1 }}
-        >
-          <Typography
-            variant="h6"
-            sx={{
-              fontWeight: "700",
-              fontSize: "1.1rem",
-              color: "white",
-            }}
-          >
-            {t("radiologyTest", language)} {index + 1}
-          </Typography>
-          <Chip
-            label={status.label}
-            sx={{
-              bgcolor: "white",
-              color: "#556B2F",
-              fontWeight: "600",
-              fontSize: "0.75rem",
-              height: 26,
-            }}
-          />
-        </Stack>
-      </Box>
-
-      <CardContent sx={{ flexGrow: 1, p: 3 }}>
-        {/* Patient Info */}
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2.5,
-            borderRadius: 2,
-            bgcolor: familyMemberInfo ? "#FAF8F5" : "#F5F5DC",
-            border: familyMemberInfo ? "2px solid #8B9A46" : "2px solid #A8B56B",
-            transition: "all 0.3s ease",
-            "&:hover": {
-              bgcolor: familyMemberInfo ? "#E8E8D0" : "#E8E8D0",
-              transform: "translateY(-2px)",
-            },
-            mb: 2,
-          }}
-        >
-          {familyMemberInfo ? (
-            // Family Member Info
-            <Stack spacing={1.5}>
-              <Stack direction="row" alignItems="center" spacing={1.5}>
-                <Avatar
-                  sx={{
-                    bgcolor: "#8B9A46",
-                    width: 45,
-                    height: 45,
-                  }}
-                >
-                  <PersonIcon sx={{ fontSize: 24 }} />
-                </Avatar>
-                <Box sx={{ flexGrow: 1 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "#8B9A46",
-                      fontWeight: "700",
-                      fontSize: "0.65rem",
-                      letterSpacing: "0.5px",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {t("familyMember", language)}
+        <CardContent sx={{ flexGrow: 1, p: 2, display: "flex", flexDirection: "column" }}>
+          {/* Patient Info - Compact */}
+          <Stack direction="row" alignItems="center" spacing={1.5} mb={2}>
+            <Avatar sx={{ bgcolor: cardStyle.borderColor, width: 44, height: 44 }}>
+              <PersonIcon sx={{ fontSize: 24 }} />
+            </Avatar>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography variant="body1" fontWeight={700} noWrap sx={{ color: "#1e293b" }}>
+                {patientName || "Unknown"}
+              </Typography>
+              <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+                {patientAge && (
+                  <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                    {patientAge}
                   </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: "600",
-                      color: "#1e293b",
-                      fontSize: "0.9rem",
-                    }}
-                  >
-                    {familyMemberInfo.name}
+                )}
+                {patientAge && patientGender && (
+                  <Typography variant="caption" color="text.secondary">•</Typography>
+                )}
+                {patientGender && (
+                  <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                    {patientGender}
                   </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: "600",
-                      color: "#1e293b",
-                      fontSize: "0.85rem",
-                      mt: 0.25,
-                    }}
-                  >
-                    {familyMemberInfo.relation} of {request.memberName}
-                  </Typography>
-                </Box>
+                )}
               </Stack>
-              <Divider />
-              <Grid container spacing={1}>
-                <Grid item xs={6}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "#3D4F23",
-                      fontWeight: "600",
-                      fontSize: "0.7rem",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {t("age", language)}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: "600",
-                      color: familyMemberInfo.age ? "#1e293b" : "#94a3b8",
-                      fontSize: "0.85rem",
-                      mt: 0.25,
-                      fontStyle: familyMemberInfo.age ? "normal" : "italic",
-                    }}
-                  >
-                    {familyMemberInfo.age || t("notAvailable", language)}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "#3D4F23",
-                      fontWeight: "600",
-                      fontSize: "0.7rem",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {t("gender", language)}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: "600",
-                      color: familyMemberInfo.gender ? "#1e293b" : "#94a3b8",
-                      fontSize: "0.85rem",
-                      mt: 0.25,
-                      fontStyle: familyMemberInfo.gender ? "normal" : "italic",
-                    }}
-                  >
-                    {familyMemberInfo.gender || t("notAvailable", language)}
-                  </Typography>
-                </Grid>
-              </Grid>
+            </Box>
+          </Stack>
+
+          {/* Employee ID */}
+          {(patientEmployeeId || request.employeeId) && (
+            <Box sx={{ mb: 2, px: 1.5, py: 1, bgcolor: "#f1f5f9", borderRadius: 1.5, border: "1px solid #e2e8f0" }}>
+              <Typography variant="caption" fontWeight={600} color="#475569">
+                {t("employeeId", language)}: {patientEmployeeId || request.employeeId}
+              </Typography>
+            </Box>
+          )}
+
+          {/* Family Member Indicator */}
+          {isFamilyMember && (
+            <Chip
+              label={`${familyMemberInfo?.relation} ${language === "ar" ? "لـ" : "of"} ${request.memberName}`}
+              size="small"
+              sx={{
+                mb: 2,
+                bgcolor: "#fef3c7",
+                color: "#92400e",
+                fontSize: "0.7rem",
+                height: 24,
+                fontWeight: 600,
+              }}
+            />
+          )}
+
+          {/* Radiology Test + View Button */}
+          <Box sx={{ mb: 2, flex: 1 }}>
+            <Typography variant="caption" fontWeight={700} color="#556B2F" sx={{ mb: 1, display: "block", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              {t("radiologyTest", language)}
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              fullWidth
+              startIcon={<VisibilityIcon />}
+              onClick={() => setViewDialogOpen(true)}
+              sx={{
+                borderColor: "#556B2F",
+                color: "#556B2F",
+                textTransform: "none",
+                "&:hover": { bgcolor: "#f5f5dc", borderColor: "#3D4F23" },
+              }}
+            >
+              {language === "ar" ? "عرض الفحص" : "View Test"}
+            </Button>
+          </Box>
+
+          {/* Issue Date - Compact */}
+          <Stack direction="row" alignItems="center" spacing={0.75} sx={{ pt: 1, borderTop: "1px solid #f1f5f9" }}>
+            <CalendarTodayIcon sx={{ fontSize: 14, color: "#9ca3af" }} />
+            <Typography variant="caption" color="text.secondary" fontWeight={500}>
+              {language === "ar" ? "تاريخ الإصدار:" : "Issued:"} {formatDate(request.createdAt)}
+            </Typography>
+          </Stack>
+        </CardContent>
+
+        {/* Action Buttons - Only for PENDING */}
+        {status.label === "Pending" && (
+          <Box sx={{ p: 2, pt: 0 }}>
+            <Button
+              variant="contained"
+              size="medium"
+              fullWidth
+              startIcon={<FileUploadIcon />}
+              onClick={() => onOpenUploadDialog(request)}
+              sx={{
+                bgcolor: "#556B2F",
+                fontWeight: 600,
+                py: 1,
+                "&:hover": { bgcolor: "#3D4F23" },
+              }}
+            >
+              {language === "ar" ? "رفع النتيجة" : "Upload Result"}
+            </Button>
+          </Box>
+        )}
+
+        {/* Completed Status */}
+        {request.resultFilePath && (
+          <Box sx={{ p: 2, pt: 0 }}>
+            <Chip
+              label={language === "ar" ? "تم إرسال النتيجة" : "Results Submitted"}
+              color="success"
+              variant="outlined"
+              sx={{ width: "100%" }}
+            />
+          </Box>
+        )}
+      </Card>
+
+      {/* View Test Dialog */}
+      <Dialog
+        open={viewDialogOpen}
+        onClose={() => setViewDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: "#556B2F", color: "white", fontWeight: 700 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <LocalHospitalIcon />
+            <span>{language === "ar" ? "تفاصيل الفحص" : "Test Details"}</span>
+          </Stack>
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            {language === "ar" ? "المريض:" : "Patient:"} <b>{patientName}</b>
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+          <Box sx={{ p: 2, bgcolor: "#fafaf5", borderRadius: 2, border: "1px solid #e8ede0" }}>
+            <Stack spacing={1.5}>
               <Box>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "#3D4F23",
-                    fontWeight: "600",
-                    fontSize: "0.7rem",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {t("insuranceNumber", language)}
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                  {language === "ar" ? "نوع الفحص" : "Exam Type"}
                 </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: "600",
-                    color: "#1e293b",
-                    fontSize: "0.85rem",
-                    mt: 0.25,
-                  }}
-                >
-                  {familyMemberInfo.insuranceNumber}
+                <Typography variant="body1" fontWeight={600} color="#1e293b">
+                  {request.testName || t("generalRadiology", language)}
                 </Typography>
               </Box>
-              <Divider />
-              <Box>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "#3D4F23",
-                    fontWeight: "600",
-                    fontSize: "0.7rem",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {t("mainClient", language)}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: "600",
-                    color: "#1e293b",
-                    fontSize: "0.9rem",
-                    mt: 0.25,
-                  }}
-                >
-                  {request.memberName}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "#3D4F23",
-                    fontWeight: "600",
-                    fontSize: "0.7rem",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {t("employeeId", language)}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: "600",
-                    color: patientEmployeeId ? "#1e293b" : "#94a3b8",
-                    fontSize: "0.85rem",
-                    mt: 0.25,
-                    fontStyle: patientEmployeeId ? "normal" : "italic",
-                  }}
-                >
-                  {patientEmployeeId || t("notAvailable", language)}
-                </Typography>
-              </Box>
-              <Grid container spacing={1}>
-                <Grid item xs={6}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "#3D4F23",
-                      fontWeight: "600",
-                      fontSize: "0.7rem",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {t("age", language)}
+              {request.doctorName && (
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    {language === "ar" ? "الطبيب المحيل" : "Requesting Doctor"}
                   </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: "600",
-                      color: displayAge ? "#1e293b" : "#94a3b8",
-                      fontSize: "0.85rem",
-                      mt: 0.25,
-                      fontStyle: displayAge ? "normal" : "italic",
-                    }}
-                  >
-                    {displayAge || t("notAvailable", language)}
+                  <Typography variant="body2" color="#1e293b">
+                    Dr. {request.doctorName}
                   </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "#3D4F23",
-                      fontWeight: "600",
-                      fontSize: "0.7rem",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {t("gender", language)}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: "600",
-                      color: displayGender ? "#1e293b" : "#94a3b8",
-                      fontSize: "0.85rem",
-                      mt: 0.25,
-                      fontStyle: displayGender ? "normal" : "italic",
-                    }}
-                  >
-                    {displayGender || t("notAvailable", language)}
-                  </Typography>
-                </Grid>
-              </Grid>
-              {/* University Card of Main Client */}
-              {universityCardImage && (
-                <Box sx={{ mt: 2, p: 2, bgcolor: "#F5F5DC", borderRadius: 1 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "#556B2F",
-                      fontWeight: "600",
-                      fontSize: "0.7rem",
-                      textTransform: "uppercase",
-                      mb: 1,
-                    }}
-                  >
-                    {t("universityCardOfMainClient", language)}
-                  </Typography>
-                  <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 1 }}>
-                    <Avatar
-                      src={
-                        universityCardImage
-                          ? universityCardImage.startsWith("http")
-                            ? universityCardImage
-                            : `${API_BASE_URL}${universityCardImage}`
-                          : null
-                      }
-                      onClick={() => {
-                        if (universityCardImage) {
-                          const imageUrl = universityCardImage.startsWith("http")
-                            ? universityCardImage
-                            : `${API_BASE_URL}${universityCardImage}`;
-                          onImageClick(imageUrl);
-                        }
-                      }}
-                      sx={{
-                        bgcolor: "#7B8B5E",
-                        width: 80,
-                        height: 80,
-                        cursor: "pointer",
-                        border: "2px solid #556B2F",
-                        "&:hover": {
-                          opacity: 0.8,
-                          transform: "scale(1.05)",
-                          transition: "all 0.2s ease",
-                        },
-                      }}
-                    >
-                      <PersonIcon sx={{ fontSize: 48 }} />
-                    </Avatar>
-                  </Stack>
                 </Box>
               )}
             </Stack>
-          ) : (
-            // Main Client Info
-            <Stack spacing={1.5}>
-              <Stack direction="row" alignItems="center" spacing={1.5}>
-                <Avatar
-                  sx={{
-                    bgcolor: "#556B2F",
-                    width: 45,
-                    height: 45,
-                  }}
-                >
-                  <PersonIcon sx={{ fontSize: 24 }} />
-                </Avatar>
-                <Box sx={{ flexGrow: 1 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "#556B2F",
-                      fontWeight: "700",
-                      fontSize: "0.65rem",
-                      letterSpacing: "0.5px",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {t("patient", language)}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: "600",
-                      color: "#1e293b",
-                      fontSize: "0.9rem",
-                    }}
-                  >
-                    {request.memberName || t("unknown", language)}
-                  </Typography>
-                </Box>
-              </Stack>
-              <Divider />
-              <Stack spacing={1}>
-                {patientEmployeeId && (
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "#7B8B5E",
-                        fontWeight: "600",
-                        fontSize: "0.7rem",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Employee ID
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontWeight: "600",
-                        color: "#1e293b",
-                        fontSize: "0.85rem",
-                        mt: 0.25,
-                      }}
-                    >
-                      {patientEmployeeId}
-                    </Typography>
-                  </Box>
-                )}
-                <Grid container spacing={1}>
-                  <Grid item xs={6}>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "#7B8B5E",
-                        fontWeight: "600",
-                        fontSize: "0.7rem",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      {t("age", language)}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontWeight: "600",
-                        color: displayAge ? "#1e293b" : "#94a3b8",
-                        fontSize: "0.85rem",
-                        mt: 0.25,
-                        fontStyle: displayAge ? "normal" : "italic",
-                      }}
-                    >
-                      {displayAge || t("notAvailable", language)}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "#7B8B5E",
-                        fontWeight: "600",
-                        fontSize: "0.7rem",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      {t("gender", language)}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontWeight: "600",
-                        color: displayGender ? "#1e293b" : "#94a3b8",
-                        fontSize: "0.85rem",
-                        mt: 0.25,
-                        fontStyle: displayGender ? "normal" : "italic",
-                      }}
-                    >
-                      {displayGender || t("notAvailable", language)}
-                    </Typography>
-                  </Grid>
-                </Grid>
-                {/* University Card of Main Client */}
-                {universityCardImage && (
-                  <Box sx={{ mt: 2, p: 2, bgcolor: "#F5F5DC", borderRadius: 1 }}>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "#556B2F",
-                        fontWeight: "600",
-                        fontSize: "0.7rem",
-                        textTransform: "uppercase",
-                        mb: 1,
-                      }}
-                    >
-                      University Card of Main Client
-                    </Typography>
-                    <Stack direction="row" alignItems="center" spacing={2} sx={{ mt: 1 }}>
-                      <Avatar
-                        src={
-                          universityCardImage
-                            ? universityCardImage.startsWith("http")
-                              ? universityCardImage
-                              : `${API_BASE_URL}${universityCardImage}`
-                            : null
-                        }
-                        onClick={() => {
-                          if (universityCardImage) {
-                            const imageUrl = universityCardImage.startsWith("http")
-                              ? universityCardImage
-                              : `${API_BASE_URL}${universityCardImage}`;
-                            onImageClick(imageUrl);
-                          }
-                        }}
-                        sx={{
-                          bgcolor: "#7B8B5E",
-                          width: 80,
-                          height: 80,
-                          cursor: "pointer",
-                          border: "2px solid #556B2F",
-                          "&:hover": {
-                            opacity: 0.8,
-                            transform: "scale(1.05)",
-                            transition: "all 0.2s ease",
-                          },
-                        }}
-                      >
-                        <PersonIcon sx={{ fontSize: 48 }} />
-                      </Avatar>
-                    </Stack>
-                  </Box>
-                )}
-              </Stack>
-            </Stack>
-          )}
-        </Paper>
-
-        {/* Doctor Info */}
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2.5,
-            borderRadius: 2,
-            bgcolor: "#FAF8F5",
-            border: "2px solid #8B9A46",
-            mb: 2,
-          }}
-        >
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Avatar
-              sx={{
-                bgcolor: "#556B2F",
-                width: 40,
-                height: 40,
-              }}
-            >
-              👨‍⚕️
-            </Avatar>
-            <Box sx={{ flexGrow: 1 }}>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: "#3D4F23",
-                  fontWeight: "700",
-                  fontSize: "0.65rem",
-                  letterSpacing: "0.5px",
-                  textTransform: "uppercase",
-                }}
-              >
-                {t("requestingDoctor", language)}
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: "600",
-                  color: "#1e293b",
-                  fontSize: "0.9rem",
-                }}
-              >
-                {request.doctorName || "N/A"}
-              </Typography>
-            </Box>
-          </Stack>
-        </Paper>
-
-        {/* Exam Type / Test Name */}
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2.5,
-            borderRadius: 2,
-            bgcolor: "#F5F5DC",
-            border: "2px solid #A8B56B",
-            mb: 2,
-          }}
-        >
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Avatar
-              sx={{
-                bgcolor: "#7B8B5E",
-                width: 40,
-                height: 40,
-              }}
-            >
-              📋
-            </Avatar>
-            <Box sx={{ flexGrow: 1 }}>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: "#3D4F23",
-                  fontWeight: "700",
-                  fontSize: "0.65rem",
-                  letterSpacing: "0.5px",
-                  textTransform: "uppercase",
-                }}
-              >
-                {t("examType", language)}
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: "600",
-                  color: "#1e293b",
-                  fontSize: "0.9rem",
-                }}
-              >
-                {request.testName || t("generalRadiology", language)}
-              </Typography>
-            </Box>
-          </Stack>
-        </Paper>
-
-        {/* Request Date */}
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2.5,
-            borderRadius: 2,
-            bgcolor: "#FAF8F5",
-            border: "2px solid #7B8B5E",
-            mb: 2,
-          }}
-        >
-          <Stack direction="row" alignItems="center" spacing={1.5}>
-            <Avatar
-              sx={{
-                bgcolor: "#556B2F",
-                width: 40,
-                height: 40,
-              }}
-            >
-              <EventIcon sx={{ fontSize: 20 }} />
-            </Avatar>
-            <Box>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: "#3D4F23",
-                  fontWeight: "700",
-                  fontSize: "0.65rem",
-                  letterSpacing: "0.5px",
-                  textTransform: "uppercase",
-                }}
-              >
-                {t("requestDate", language)}
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: "600",
-                  color: "#1e293b",
-                  fontSize: "0.9rem",
-                }}
-              >
-                {formatDate(request.createdAt)}
-              </Typography>
-            </Box>
-          </Stack>
-        </Paper>
-
-        {/* Action Buttons */}
-        {status.label === "Pending" && (
-          <Button
-            fullWidth
-            variant="contained"
-            startIcon={<FileUploadIcon />}
-            onClick={() => onOpenUploadDialog(request)}
-            sx={{
-              borderRadius: 2,
-              py: 1.5,
-              textTransform: "none",
-              fontWeight: "600",
-              fontSize: "0.95rem",
-              background: "linear-gradient(135deg, #556B2F 0%, #7B8B5E 100%)",
-              boxShadow: "0 4px 14px rgba(85, 107, 47, 0.4)",
-              "&:hover": {
-                background: "linear-gradient(135deg, #3D4F23 0%, #556B2F 100%)",
-                boxShadow: "0 6px 20px rgba(85, 107, 47, 0.5)",
-                transform: "translateY(-2px)",
-              },
-              transition: "all 0.3s ease",
-            }}
-          >
-            {t("uploadResult", language)}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setViewDialogOpen(false)} variant="contained" sx={{ bgcolor: "#556B2F" }}>
+            {language === "ar" ? "إغلاق" : "Close"}
           </Button>
-        )}
-
-        {/* Uploaded Result Info */}
-        {request.resultFilePath && (
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2.5,
-              borderRadius: 2,
-              bgcolor: "#f0fdf4",
-              border: "2px solid #86efac",
-              mt: 2,
-            }}
-          >
-            <Stack direction="row" alignItems="center" spacing={1.5}>
-              <Avatar
-                sx={{
-                  bgcolor: "#16a34a",
-                  width: 40,
-                  height: 40,
-                }}
-              >
-                <DescriptionIcon sx={{ fontSize: 20 }} />
-              </Avatar>
-              <Box sx={{ flexGrow: 1 }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "#3D4F23",
-                    fontWeight: "700",
-                    fontSize: "0.65rem",
-                    letterSpacing: "0.5px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {t("resultUploaded", language)}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: "600",
-                    color: "#1e293b",
-                    fontSize: "0.85rem",
-                  }}
-                >
-                  {request.approvedPrice ? `${t("price", language)}: ${request.approvedPrice}` : t("completed", language)}
-                </Typography>
-              </Box>
-            </Stack>
-          </Paper>
-        )}
-
-        {/* Upload Time */}
-        {request.uploadedAt && (
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2,
-              borderRadius: 2,
-              bgcolor: "#fef3c7",
-              border: "2px solid #fde047",
-              mt: 2,
-            }}
-          >
-            <Stack direction="row" alignItems="center" spacing={1.5}>
-              <Avatar
-                sx={{
-                  bgcolor: "#eab308",
-                  width: 35,
-                  height: 35,
-                }}
-              >
-                <AccessTimeIcon sx={{ fontSize: 18 }} />
-              </Avatar>
-              <Box>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "#556B2F",
-                    fontWeight: "700",
-                    fontSize: "0.65rem",
-                    letterSpacing: "0.5px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {t("uploadedAt", language)}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: "600",
-                    color: "#1e293b",
-                    fontSize: "0.85rem",
-                  }}
-                >
-                  {formatDate(request.uploadedAt)}
-                </Typography>
-              </Box>
-            </Stack>
-          </Paper>
-        )}
-      </CardContent>
-    </Card>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 });
 
@@ -862,12 +289,10 @@ RadiologyRequestCard.propTypes = {
   }).isRequired,
   familyMemberInfo: PropTypes.object,
   patientEmployeeId: PropTypes.string,
-  universityCardImage: PropTypes.string,
   displayAge: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   displayGender: PropTypes.string,
   formatDate: PropTypes.func.isRequired,
   onOpenUploadDialog: PropTypes.func.isRequired,
-  onImageClick: PropTypes.func.isRequired,
 };
 
 export default RadiologyRequestCard;

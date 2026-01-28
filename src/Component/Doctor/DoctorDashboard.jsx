@@ -14,6 +14,7 @@ import DoctorHeader from "./DoctorHeader";
 
 import HealthcareProviderMyClaims from "../Shared/HealthcareProviderMyClaims";
 import ConsultationPrices from "../Shared/ConsultationPrices";
+import FinancialReport from "./FinancialReport";
 
 import Profile from "../Profile/DoctorProfile";
 import DoctorSidebar from "./DoctorSidebar";
@@ -32,8 +33,6 @@ import {
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
-import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import MyProfile from "./MyProfile";
 
 const DoctorDashboard = () => {
   const theme = useTheme();
@@ -496,68 +495,10 @@ const DoctorDashboard = () => {
                       </Box>
                       <Box>
                         <Typography variant="subtitle1" fontWeight="bold" sx={{ color: "#2E3B2D", mb: 0.5 }}>
-                          {t("createRequest", language)}
+                          {t("createMedicalVisit", language) || "Create Medical Visit"}
                         </Typography>
                         <Typography variant="body2" sx={{ color: "#5d6b5d" }}>
-                          {t("createPrescriptionOrRequest", language)}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={3}>
-                  <Box
-                    onClick={() => setActiveView("doctor-searchprofile-add")}
-                    sx={{
-                      p: 3,
-                      borderRadius: 3,
-                      border: "2px solid #E8EBE0",
-                      bgcolor: "#F5F7F0",
-                      cursor: "pointer",
-                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                      position: "relative",
-                      overflow: "hidden",
-                      "&::before": {
-                        content: '""',
-                        position: "absolute",
-                        top: 0,
-                        left: "-100%",
-                        width: "100%",
-                        height: "100%",
-                        background: "linear-gradient(90deg, transparent, rgba(85, 107, 47, 0.1), transparent)",
-                        transition: "left 0.5s ease",
-                      },
-                      "&:hover": {
-                        borderColor: "#556B2F",
-                        bgcolor: "#E8EBE0",
-                        transform: "translateY(-4px)",
-                        boxShadow: "0 8px 24px rgba(85, 107, 47, 0.15)",
-                        "&::before": {
-                          left: "100%",
-                        },
-                      },
-                    }}
-                  >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <Box
-                        sx={{
-                          bgcolor: "#556B2F",
-                          borderRadius: 2,
-                          p: 1.5,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <PersonAddIcon sx={{ color: "white", fontSize: 28 }} />
-                      </Box>
-                      <Box>
-                        <Typography variant="subtitle1" fontWeight="bold" sx={{ color: "#2E3B2D", mb: 0.5 }}>
-                          {t("addProfile", language)}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: "#5d6b5d" }}>
-                          {t("registerYourProfile", language)}
+                          {t("createMedicalVisitDescription", language) || "Record patient visit and prescriptions"}
                         </Typography>
                       </Box>
                     </Box>
@@ -626,7 +567,6 @@ const DoctorDashboard = () => {
           </Box>
         )}
 
-        {activeView === "doctor-searchprofile-my" && <MyProfile />}
         {activeView === "profile" && (
           <Profile userInfo={userInfo} setUser={setUserInfo} refresh={fetchAll} />
         )}
@@ -643,6 +583,7 @@ const DoctorDashboard = () => {
         {activeView === "my-claims" && (
           <HealthcareProviderMyClaims userRole={ROLES.DOCTOR} />
         )}
+        {activeView === "financial-report" && <FinancialReport />}
         {activeView === "consultation-prices" && <ConsultationPrices />}
       </Box>
 

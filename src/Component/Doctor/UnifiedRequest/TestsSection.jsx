@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   Paper,
@@ -9,13 +9,22 @@ import {
   Divider,
   Autocomplete,
   Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  createFilterOptions,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WarningIcon from "@mui/icons-material/Warning";
 import CancelIcon from "@mui/icons-material/Cancel";
+import AddIcon from "@mui/icons-material/Add";
 import { useLanguage } from "../../../context/LanguageContext";
 import { t } from "../../../config/translations";
+
+const filter = createFilterOptions();
 
 // Helper function to get coverage status display info
 const getCoverageStatusInfo = (coverageStatus, coveragePercentage, language) => {
@@ -73,6 +82,50 @@ const TestsSection = ({
 }) => {
   const { language, isRTL } = useLanguage();
 
+  // State for custom lab test dialog
+  const [addLabTestDialogOpen, setAddLabTestDialogOpen] = useState(false);
+  const [newLabTestName, setNewLabTestName] = useState("");
+
+  // State for custom radiology test dialog
+  const [addRadiologyTestDialogOpen, setAddRadiologyTestDialogOpen] = useState(false);
+  const [newRadiologyTestName, setNewRadiologyTestName] = useState("");
+
+  // Handler for adding custom lab test
+  const handleAddCustomLabTest = () => {
+    if (newLabTestName.trim()) {
+      const customLabTest = {
+        id: `custom-lab-${Date.now()}`,
+        serviceName: newLabTestName.trim(),
+        name: newLabTestName.trim(),
+        coverageStatus: "NOT_COVERED",
+        coveragePercentage: 0,
+        isCustom: true,
+      };
+      onAddLabTest(customLabTest);
+      setNewLabTestName("");
+      setAddLabTestDialogOpen(false);
+      setSelectedLabTestValue(null);
+    }
+  };
+
+  // Handler for adding custom radiology test
+  const handleAddCustomRadiologyTest = () => {
+    if (newRadiologyTestName.trim()) {
+      const customRadiologyTest = {
+        id: `custom-radiology-${Date.now()}`,
+        serviceName: newRadiologyTestName.trim(),
+        name: newRadiologyTestName.trim(),
+        coverageStatus: "NOT_COVERED",
+        coveragePercentage: 0,
+        isCustom: true,
+      };
+      onAddRadiologyTest(customRadiologyTest);
+      setNewRadiologyTestName("");
+      setAddRadiologyTestDialogOpen(false);
+      setSelectedRadiologyTestValue(null);
+    }
+  };
+
   return (
     <>
       {/* Lab Tests */}
@@ -90,22 +143,48 @@ const TestsSection = ({
             <Autocomplete
               value={selectedLabTestValue}
               options={availableLabTests}
-              getOptionLabel={(option) => option.serviceName || option.name || ""}
+              freeSolo
+              getOptionLabel={(option) => {
+                if (typeof option === "string") return option;
+                if (option.inputValue) return option.inputValue;
+                return option.serviceName || option.name || "";
+              }}
               isOptionEqualToValue={(option, value) => option.id === value.id}
               onChange={(event, newValue) => {
-                if (newValue) {
+                if (typeof newValue === "string") {
+                  // User typed something and pressed enter
+                  setNewLabTestName(newValue);
+                  setAddLabTestDialogOpen(true);
+                } else if (newValue && newValue.inputValue) {
+                  // User selected "Add new" option
+                  setNewLabTestName(newValue.inputValue);
+                  setAddLabTestDialogOpen(true);
+                } else if (newValue) {
                   onAddLabTest(newValue);
                   setSelectedLabTestValue(null);
                 }
               }}
               disabled={hasSameSpecializationRestriction}
-              filterOptions={(options, { inputValue }) => {
-                if (!inputValue) return options;
-                const searchLower = inputValue.toLowerCase();
-                return options.filter((option) => {
-                  const serviceName = (option.serviceName || option.name || "").toLowerCase();
-                  return serviceName.includes(searchLower);
-                });
+              filterOptions={(options, params) => {
+                const filtered = filter(options, params);
+
+                const { inputValue } = params;
+                // Check if any option matches the input exactly
+                const isExisting = options.some(
+                  (option) =>
+                    (option.serviceName || option.name || "").toLowerCase() === inputValue.toLowerCase()
+                );
+
+                // Show "Add new" option if input doesn't match any existing option
+                if (inputValue !== "" && !isExisting) {
+                  filtered.push({
+                    inputValue,
+                    serviceName: `${language === "ar" ? "إضافة" : "Add"} "${inputValue}"`,
+                    isAddNew: true,
+                  });
+                }
+
+                return filtered;
               }}
               renderInput={(params) => (
                 <TextField
@@ -117,11 +196,31 @@ const TestsSection = ({
                       : t("searchSelectLabTest", language)
                   }
                   variant="outlined"
-                  disabled={availableLabTests.length === 0 || hasSameSpecializationRestriction}
+                  disabled={hasSameSpecializationRestriction}
                 />
               )}
               renderOption={(props, option) => {
                 const { key, ...restProps } = props;
+                if (option.isAddNew) {
+                  return (
+                    <Box
+                      component="li"
+                      key={key}
+                      {...restProps}
+                      sx={{
+                        fontSize: "0.95rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        color: "#556B2F",
+                        fontWeight: 600,
+                      }}
+                    >
+                      <AddIcon sx={{ fontSize: 20 }} />
+                      <span>{option.serviceName}</span>
+                    </Box>
+                  );
+                }
                 const statusInfo = getCoverageStatusInfo(option.coverageStatus, option.coveragePercentage, language);
                 return (
                   <Box
@@ -238,22 +337,48 @@ const TestsSection = ({
             <Autocomplete
               value={selectedRadiologyTestValue}
               options={availableRadiologyTests}
-              getOptionLabel={(option) => option.serviceName || option.name || ""}
+              freeSolo
+              getOptionLabel={(option) => {
+                if (typeof option === "string") return option;
+                if (option.inputValue) return option.inputValue;
+                return option.serviceName || option.name || "";
+              }}
               isOptionEqualToValue={(option, value) => option.id === value.id}
               onChange={(event, newValue) => {
-                if (newValue) {
+                if (typeof newValue === "string") {
+                  // User typed something and pressed enter
+                  setNewRadiologyTestName(newValue);
+                  setAddRadiologyTestDialogOpen(true);
+                } else if (newValue && newValue.inputValue) {
+                  // User selected "Add new" option
+                  setNewRadiologyTestName(newValue.inputValue);
+                  setAddRadiologyTestDialogOpen(true);
+                } else if (newValue) {
                   onAddRadiologyTest(newValue);
                   setSelectedRadiologyTestValue(null);
                 }
               }}
               disabled={hasSameSpecializationRestriction}
-              filterOptions={(options, { inputValue }) => {
-                if (!inputValue) return options;
-                const searchLower = inputValue.toLowerCase();
-                return options.filter((option) => {
-                  const serviceName = (option.serviceName || option.name || "").toLowerCase();
-                  return serviceName.includes(searchLower);
-                });
+              filterOptions={(options, params) => {
+                const filtered = filter(options, params);
+
+                const { inputValue } = params;
+                // Check if any option matches the input exactly
+                const isExisting = options.some(
+                  (option) =>
+                    (option.serviceName || option.name || "").toLowerCase() === inputValue.toLowerCase()
+                );
+
+                // Show "Add new" option if input doesn't match any existing option
+                if (inputValue !== "" && !isExisting) {
+                  filtered.push({
+                    inputValue,
+                    serviceName: `${language === "ar" ? "إضافة" : "Add"} "${inputValue}"`,
+                    isAddNew: true,
+                  });
+                }
+
+                return filtered;
               }}
               renderInput={(params) => (
                 <TextField
@@ -266,6 +391,26 @@ const TestsSection = ({
               )}
               renderOption={(props, option) => {
                 const { key, ...restProps } = props;
+                if (option.isAddNew) {
+                  return (
+                    <Box
+                      component="li"
+                      key={key}
+                      {...restProps}
+                      sx={{
+                        fontSize: "0.95rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        color: "#556B2F",
+                        fontWeight: 600,
+                      }}
+                    >
+                      <AddIcon sx={{ fontSize: 20 }} />
+                      <span>{option.serviceName}</span>
+                    </Box>
+                  );
+                }
                 const statusInfo = getCoverageStatusInfo(option.coverageStatus, option.coveragePercentage, language);
                 return (
                   <Box
@@ -371,6 +516,104 @@ const TestsSection = ({
           )}
         </Stack>
       )}
+
+      {/* Add Custom Lab Test Dialog */}
+      <Dialog
+        open={addLabTestDialogOpen}
+        onClose={() => {
+          setAddLabTestDialogOpen(false);
+          setNewLabTestName("");
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: "#556B2F", color: "white", fontWeight: 700 }}>
+          {language === "ar" ? "إضافة فحص مختبر مخصص" : "Add Custom Lab Test"}
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {language === "ar"
+              ? "هذا الفحص غير موجود في القائمة. سيتم إضافته كفحص غير مغطى."
+              : "This test is not in the list. It will be added as a non-covered test."}
+          </Typography>
+          <TextField
+            fullWidth
+            label={language === "ar" ? "اسم الفحص" : "Test Name"}
+            value={newLabTestName}
+            onChange={(e) => setNewLabTestName(e.target.value)}
+            autoFocus
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => {
+              setAddLabTestDialogOpen(false);
+              setNewLabTestName("");
+            }}
+            color="inherit"
+          >
+            {language === "ar" ? "إلغاء" : "Cancel"}
+          </Button>
+          <Button
+            onClick={handleAddCustomLabTest}
+            variant="contained"
+            disabled={!newLabTestName.trim()}
+            sx={{ bgcolor: "#556B2F", "&:hover": { bgcolor: "#6B8B4E" } }}
+          >
+            {language === "ar" ? "إضافة" : "Add"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Custom Radiology Test Dialog */}
+      <Dialog
+        open={addRadiologyTestDialogOpen}
+        onClose={() => {
+          setAddRadiologyTestDialogOpen(false);
+          setNewRadiologyTestName("");
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: "#556B2F", color: "white", fontWeight: 700 }}>
+          {language === "ar" ? "إضافة فحص أشعة مخصص" : "Add Custom Radiology Test"}
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {language === "ar"
+              ? "هذا الفحص غير موجود في القائمة. سيتم إضافته كفحص غير مغطى."
+              : "This test is not in the list. It will be added as a non-covered test."}
+          </Typography>
+          <TextField
+            fullWidth
+            label={language === "ar" ? "اسم الفحص" : "Test Name"}
+            value={newRadiologyTestName}
+            onChange={(e) => setNewRadiologyTestName(e.target.value)}
+            autoFocus
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => {
+              setAddRadiologyTestDialogOpen(false);
+              setNewRadiologyTestName("");
+            }}
+            color="inherit"
+          >
+            {language === "ar" ? "إلغاء" : "Cancel"}
+          </Button>
+          <Button
+            onClick={handleAddCustomRadiologyTest}
+            variant="contained"
+            disabled={!newRadiologyTestName.trim()}
+            sx={{ bgcolor: "#556B2F", "&:hover": { bgcolor: "#6B8B4E" } }}
+          >
+            {language === "ar" ? "إضافة" : "Add"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

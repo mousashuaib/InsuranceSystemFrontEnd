@@ -23,10 +23,10 @@ import CloseIcon from "@mui/icons-material/Close";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-import MedicalInformationIcon from "@mui/icons-material/MedicalInformation";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import PaidIcon from "@mui/icons-material/Paid";
+import AssessmentIcon from "@mui/icons-material/Assessment";
 
 import LogoutDialog from "../Auth/LogoutDialog";
 import { clearAuthData } from "../../utils/apiService";
@@ -216,6 +216,18 @@ const DoctorSidebar = memo(function DoctorSidebar({ activeView, setActiveView })
             {(open || isDrawer) && <ListItemText primary={t("myClaims", language)} />}
           </ListItemButton>
         </Tooltip>
+        <Tooltip title={t("financialReport", language) || "Financial Report"} placement={isRTL ? "left" : "right"} disableHoverListener={open || isDrawer}>
+          <ListItemButton
+            onClick={() => handleNavClick("financial-report")}
+            selected={activeView === "financial-report"}
+            sx={{ "&.Mui-selected": { backgroundColor: "rgba(255,255,255,0.2)" } }}
+          >
+            <ListItemIcon>
+              <AssessmentIcon sx={{ color: "#81C784", fontSize: { xs: 26, sm: 22 } }} />
+            </ListItemIcon>
+            {(open || isDrawer) && <ListItemText primary={t("financialReport", language) || "Financial Report"} />}
+          </ListItemButton>
+        </Tooltip>
         <Tooltip title={t("consultationPrices", language)} placement={isRTL ? "left" : "right"} disableHoverListener={open || isDrawer}>
           <ListItemButton
             onClick={() => handleNavClick("consultation-prices")}
@@ -230,25 +242,6 @@ const DoctorSidebar = memo(function DoctorSidebar({ activeView, setActiveView })
         </Tooltip>
         <Divider sx={{ my: 1, borderColor: "rgba(255,255,255,0.2)" }} />
 
-        {/* Profiles Section */}
-        {(open || isDrawer) && (
-          <Typography variant="body2" sx={{ ml: 1, mb: 0.7, color: "rgba(255,255,255,0.7)", fontSize: { xs: "0.9rem", sm: "0.8rem" } }}>
-            {t("profiles", language)}
-          </Typography>
-        )}
-        <Tooltip title={t("myProfiles", language)} placement={isRTL ? "left" : "right"} disableHoverListener={open || isDrawer}>
-          <ListItemButton
-            onClick={() => handleNavClick("doctor-searchprofile-my")}
-            selected={activeView === "doctor-searchprofile-my"}
-            sx={{ "&.Mui-selected": { backgroundColor: "rgba(255,255,255,0.2)" } }}
-          >
-            <ListItemIcon>
-              <MedicalInformationIcon sx={{ color: "#4CAF50", fontSize: { xs: 26, sm: 22 } }} />
-            </ListItemIcon>
-            {(open || isDrawer) && <ListItemText primary={t("myProfiles", language)} />}
-          </ListItemButton>
-        </Tooltip>
-        <Divider sx={{ my: 1, borderColor: "rgba(255,255,255,0.2)" }} />
 
         {/* Account Section */}
         {(open || isDrawer) && (

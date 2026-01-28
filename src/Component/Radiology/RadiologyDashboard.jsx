@@ -10,7 +10,6 @@ import logger from "../../utils/logger";
 import RadiologySidebar from "./RadiologySidebar";
 import RadiologyHeader from "./RadiologyHeader";
 import RadiologyRequestList from "./radiologyrequestlist";
-import RadiologySearchProfiles from "./RadiologyProfile";
 import NotificationsList from "../Notification/NotificationsList";
 import LogoutDialog from "../Auth/LogoutDialog";
 import AddSearchProfileRadiologist from "./AddSearchProfileRadiologist";
@@ -18,6 +17,7 @@ import RadiologyPersonalProfile from "../Profile/RadiologyProfile";
 import SharedHealthcareProviderFormClaim from "../Shared/SharedHealthcareProviderFormClaim";
 import HealthcareProviderMyClaims from "../Shared/HealthcareProviderMyClaims";
 import ConsultationPrices from "../Shared/ConsultationPrices";
+import FinancialReport from "../Doctor/FinancialReport";
 
 // ✅ MUI
 import {
@@ -864,13 +864,13 @@ const RadiologyDashboard = () => {
         {activeView === "notifications" && (
           <NotificationsList refresh={refreshUnreadCount} />
         )}
-        {activeView === "radiologyProfiles" && <RadiologySearchProfiles />}
         {activeView === "add-claim" && (
           <SharedHealthcareProviderFormClaim userRole={ROLES.RADIOLOGIST} />
         )}
         {activeView === "my-claims" && (
           <HealthcareProviderMyClaims key={claimsRefreshKey} userRole={ROLES.RADIOLOGIST} />
         )}
+        {activeView === "financial-report" && <FinancialReport />}
         {activeView === "consultation-prices" && <ConsultationPrices />}
 
         {activeView === "profile" && (

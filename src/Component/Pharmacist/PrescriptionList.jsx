@@ -19,7 +19,14 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   IconButton,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Chip,
 } from "@mui/material";
+import FamilyRestroomIcon from "@mui/icons-material/FamilyRestroom";
+import PersonIcon from "@mui/icons-material/Person";
 import DescriptionIcon from "@mui/icons-material/Description";
 import SearchIcon from "@mui/icons-material/Search";
 import BadgeIcon from "@mui/icons-material/Badge";
@@ -63,6 +70,9 @@ const PrescriptionList = ({ prescriptions, onVerify, onReject, onSubmitClaim, on
     open: false,
     imageUrl: null,
   });
+
+  // Family member filter state
+  const [familyMemberFilter, setFamilyMemberFilter] = useState("all"); // "all", "main", or family member name
 
   const formatDate = (dateString) => {
     if (!dateString) return "-";
@@ -293,7 +303,7 @@ const PrescriptionList = ({ prescriptions, onVerify, onReject, onSubmitClaim, on
 
   const openVerifyDialog = (prescription) => {
     // الصيدلي يرى: الجرعة، كم مرة باليوم، المدة، الكمية المحسوبة
-    // الصيدلي يدخل: السعر فقط
+    // الصيدلي يدخل: السعر فقط + اختيار الأدوية المتوفرة
     const prices = prescription.items.map((item) => ({
       id: item.id,
       medicineName: item.medicineName,
@@ -306,6 +316,7 @@ const PrescriptionList = ({ prescriptions, onVerify, onReject, onSubmitClaim, on
       unionPricePerUnit: item.unionPricePerUnit || 0,
       pharmacistPrice: item.pharmacistPrice || "", // الصيدلي يدخل السعر فقط
       form: item.form || null,
+      fulfilled: true, // Default: all items are fulfilled (partial fulfillment support)
     }));
     setVerifyDialog({ open: true, prescription, prices });
   };
@@ -319,12 +330,34 @@ const PrescriptionList = ({ prescriptions, onVerify, onReject, onSubmitClaim, on
     }));
   };
 
-  // Removed handleDispensedQuantityChange - الصيدلي لا يحتاج لإدخال الكمية، فقط السعر
+  // Handle fulfilled change - partial fulfillment support
+  const handleFulfilledChange = (itemId, fulfilled) => {
+    setVerifyDialog((prev) => ({
+      ...prev,
+      prices: prev.prices.map((p) =>
+        p.id === itemId ? { ...p, fulfilled } : p
+      ),
+    }));
+  };
 
   const handleVerifySubmit = async () => {
     const { prescription, prices } = verifyDialog;
 
-    const invalidPrice = prices.find((p) => !p.pharmacistPrice || p.pharmacistPrice <= 0);
+    // Filter only fulfilled items (partial fulfillment support)
+    const fulfilledItems = prices.filter((p) => p.fulfilled !== false);
+
+    // Check if at least one item is fulfilled
+    if (fulfilledItems.length === 0) {
+      setSnackbar({
+        open: true,
+        message: language === "ar" ? "يجب اختيار دواء واحد على الأقل" : "You must select at least one medicine to dispense",
+        severity: "warning",
+      });
+      return;
+    }
+
+    // Only validate prices for fulfilled items
+    const invalidPrice = fulfilledItems.find((p) => !p.pharmacistPrice || p.pharmacistPrice <= 0);
     if (invalidPrice) {
       setSnackbar({
         open: true,
@@ -334,21 +367,21 @@ const PrescriptionList = ({ prescriptions, onVerify, onReject, onSubmitClaim, on
       return;
     }
 
-    // Prepare items with prices only
+    // Prepare only fulfilled items with prices
     // Backend will use calculatedQuantity and calculate the final claim amount
-    // الصيدلي يدخل السعر فقط، والـ backend يحسب كل شيء
-    const itemsWithPrices = prices.map((p) => {
+    const itemsWithPrices = fulfilledItems.map((p) => {
       const pharmacistPrice = parseFloat(p.pharmacistPrice) || 0;
-      
+
       return {
         id: p.id,
         pharmacistPrice: pharmacistPrice, // السعر الكلي للكمية المحسوبة
-        // dispensedQuantity: لا نحتاج - الـ backend يستخدم calculatedQuantity
+        fulfilled: true, // Mark as fulfilled for backend
       };
     });
 
     try {
-      await onVerify(prescription.id, itemsWithPrices, prescription);
+      // Pass fulfilled items info to parent for claim creation
+      await onVerify(prescription.id, itemsWithPrices, prescription, fulfilledItems);
       setVerifyDialog({ open: false, prescription: null, prices: [] });
       
       // فتح dialog لإضافة document
@@ -540,19 +573,12 @@ const PrescriptionList = ({ prescriptions, onVerify, onReject, onSubmitClaim, on
   }
 
   // ✅ Sorting and filtering
-  // Filter prescriptions based on status filter
+  // Filter prescriptions - ONLY show PENDING prescriptions on this page
   const activePrescriptions = prescriptions.filter(
     (p) => {
       const status = p.status?.toLowerCase();
-
-      if (statusFilter === "pending") {
-        return status === "pending";
-      } else if (statusFilter === "verified") {
-        return status === "verified";
-      } else {
-        // "all" - show PENDING, VERIFIED, and BILLED
-        return status === "pending" || status === "verified" || status === "billed";
-      }
+      // Only show PENDING prescriptions
+      return status === "pending";
     }
   );
 
@@ -668,9 +694,11 @@ const PrescriptionList = ({ prescriptions, onVerify, onReject, onSubmitClaim, on
     setSearchInput("");
     setSearchTerm("");
     setHasSearched(false);
+    setFamilyMemberFilter("all"); // Reset family member filter when clearing search
   };
 
-  const filteredPrescriptions = sortedPrescriptions.filter(
+  // First filter by search term
+  const searchFilteredPrescriptions = sortedPrescriptions.filter(
     (p) => {
       // Only show prescriptions if search has been performed
       if (!hasSearched || !searchTerm.trim()) return false;
@@ -695,6 +723,41 @@ const PrescriptionList = ({ prescriptions, onVerify, onReject, onSubmitClaim, on
       return matchesName || matchesEmployeeId || matchesNationalId || matchesFamilyMemberName || matchesFamilyMemberInsuranceNumber || matchesFamilyMemberNationalId;
     }
   );
+
+  // Extract unique family members from search results
+  const getUniqueFamilyMembers = () => {
+    const mainClientName = searchFilteredPrescriptions.length > 0 ? searchFilteredPrescriptions[0].memberName : null;
+    const familyMembers = new Map();
+
+    searchFilteredPrescriptions.forEach(p => {
+      const familyInfo = getFamilyMemberInfo(p);
+      if (familyInfo && familyInfo.name) {
+        // Add family member with their relation
+        familyMembers.set(familyInfo.name, familyInfo.relation || "Family");
+      }
+    });
+
+    return { mainClientName, familyMembers: Array.from(familyMembers.entries()) };
+  };
+
+  const { mainClientName, familyMembers } = getUniqueFamilyMembers();
+  const hasFamilyMembers = familyMembers.length > 0;
+
+  // Apply family member filter
+  const filteredPrescriptions = searchFilteredPrescriptions.filter((p) => {
+    if (familyMemberFilter === "all") return true;
+
+    const familyInfo = getFamilyMemberInfo(p);
+    const isFamilyMemberPrescription = familyInfo !== null;
+
+    if (familyMemberFilter === "main") {
+      // Show only main client prescriptions (not family members)
+      return !isFamilyMemberPrescription;
+    } else {
+      // Show only specific family member prescriptions
+      return isFamilyMemberPrescription && familyInfo?.name === familyMemberFilter;
+    }
+  });
 
   if (prescriptions.length === 0) {
     return (
@@ -924,99 +987,86 @@ const PrescriptionList = ({ prescriptions, onVerify, onReject, onSubmitClaim, on
           </Grid>
         </Paper>
 
-        {/* Filter & Search Section - Only show if search has been performed */}
+        {/* Search Section - Only show if search has been performed */}
         {hasSearched && (
         <Card elevation={0} sx={{ borderRadius: 4, border: "1px solid #E8EDE0", mb: 4 }}>
           <CardContent sx={{ p: 3 }}>
-            <Stack spacing={2}>
-              {/* Status Filter Buttons */}
-              <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", gap: 1 }}>
-                <Button
-                  variant={statusFilter === "all" ? "contained" : "outlined"}
-                  onClick={() => setStatusFilter("all")}
-                  sx={{
-                    textTransform: "none",
-                    borderRadius: 2,
-                    px: 3,
-                    py: 1,
-                    fontWeight: statusFilter === "all" ? 600 : 400,
-                    bgcolor: statusFilter === "all" ? "#0ea5e9" : "transparent",
-                    color: statusFilter === "all" ? "white" : "#0ea5e9",
-                    borderColor: "#0ea5e9",
-                    "&:hover": {
-                      bgcolor: statusFilter === "all" ? "#0284c7" : "rgba(14, 165, 233, 0.1)",
-                      borderColor: "#0284c7",
-                    },
-                  }}
-                >
-                  {t("all", language)} ({pendingCount + verifiedCount + billedCount})
-                </Button>
-                <Button
-                  variant={statusFilter === "pending" ? "contained" : "outlined"}
-                  onClick={() => setStatusFilter("pending")}
-                  sx={{
-                    textTransform: "none",
-                    borderRadius: 2,
-                    px: 3,
-                    py: 1,
-                    fontWeight: statusFilter === "pending" ? 600 : 400,
-                    bgcolor: statusFilter === "pending" ? "#f59e0b" : "transparent",
-                    color: statusFilter === "pending" ? "white" : "#f59e0b",
-                    borderColor: "#f59e0b",
-                    "&:hover": {
-                      bgcolor: statusFilter === "pending" ? "#d97706" : "rgba(245, 158, 11, 0.1)",
-                      borderColor: "#d97706",
-                    },
-                  }}
-                >
-                  {t("pending", language)} ({pendingCount})
-                </Button>
-                <Button
-                  variant={statusFilter === "verified" ? "contained" : "outlined"}
-                  onClick={() => setStatusFilter("verified")}
-                  sx={{
-                    textTransform: "none",
-                    borderRadius: 2,
-                    px: 3,
-                    py: 1,
-                    fontWeight: statusFilter === "verified" ? 600 : 400,
-                    bgcolor: statusFilter === "verified" ? "#556B2F" : "transparent",
-                    color: statusFilter === "verified" ? "white" : "#556B2F",
-                    borderColor: "#556B2F",
-                    "&:hover": {
-                      bgcolor: statusFilter === "verified" ? "#3D4F23" : "rgba(85, 107, 47, 0.1)",
-                      borderColor: "#3D4F23",
-                    },
-                  }}
-                >
-                  {t("verified", language)} ({verifiedCount})
-                </Button>
-              </Stack>
-
-              {/* Search Bar */}
-              <TextField
-                placeholder={t("searchPlaceholder", language)}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                fullWidth
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ color: "text.secondary" }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    bgcolor: "#FAF8F5",
-                  },
-                }}
-              />
-
-            </Stack>
+            {/* Search Bar */}
+            <TextField
+              placeholder={t("searchPlaceholder", language)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              fullWidth
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: "text.secondary" }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  bgcolor: "#FAF8F5",
+                },
+              }}
+            />
           </CardContent>
         </Card>
+        )}
+
+        {/* Family Member Filter - Only show if search has been performed AND there are family members */}
+        {hasSearched && hasFamilyMembers && (
+          <Card elevation={0} sx={{ borderRadius: 4, border: "1px solid #E8EDE0", mb: 4, bgcolor: "#fef3c7" }}>
+            <CardContent sx={{ p: 2.5 }}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }}>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <FamilyRestroomIcon sx={{ color: "#92400e" }} />
+                  <Typography variant="subtitle2" fontWeight={700} color="#92400e">
+                    {language === "ar" ? "تصفية حسب أفراد العائلة:" : "Filter by Family Member:"}
+                  </Typography>
+                </Stack>
+                <FormControl size="small" sx={{ minWidth: 200, bgcolor: "white", borderRadius: 1 }}>
+                  <Select
+                    value={familyMemberFilter}
+                    onChange={(e) => setFamilyMemberFilter(e.target.value)}
+                    displayEmpty
+                    sx={{ borderRadius: 1 }}
+                  >
+                    <MenuItem value="all">
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <span>{language === "ar" ? "🔍 الكل" : "🔍 All"}</span>
+                      </Stack>
+                    </MenuItem>
+                    <MenuItem value="main">
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <PersonIcon sx={{ fontSize: 18, color: "#556B2F" }} />
+                        <span>{mainClientName || (language === "ar" ? "العميل الرئيسي" : "Main Client")}</span>
+                      </Stack>
+                    </MenuItem>
+                    {familyMembers.map(([name, relation]) => (
+                      <MenuItem key={name} value={name}>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <FamilyRestroomIcon sx={{ fontSize: 18, color: "#92400e" }} />
+                          <span>{name}</span>
+                          <Chip label={relation} size="small" sx={{ height: 18, fontSize: "0.65rem", bgcolor: "#fde68a" }} />
+                        </Stack>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                {familyMemberFilter !== "all" && (
+                  <Button
+                    size="small"
+                    onClick={() => setFamilyMemberFilter("all")}
+                    sx={{ color: "#92400e", textTransform: "none" }}
+                  >
+                    {language === "ar" ? "إظهار الكل" : "Show All"}
+                  </Button>
+                )}
+              </Stack>
+            </CardContent>
+          </Card>
         )}
 
         {/* Results Count - Only show if search has been performed */}
@@ -1096,17 +1146,11 @@ const PrescriptionList = ({ prescriptions, onVerify, onReject, onSubmitClaim, on
                 patientEmployeeId={patientEmployeeId}
                 familyMemberInfo={familyMemberInfo}
                 isFamilyMember={isFamilyMember}
-                universityCardImage={universityCardImage}
                 displayAge={displayAge}
                 displayGender={displayGender}
                 formatDate={formatDate}
-                getDosageUnit={getDosageUnit}
-                getDailyUnit={getDailyUnit}
-                getQuantityUnit={getQuantityUnit}
                 onVerify={openVerifyDialog}
                 onReject={handleReject}
-                onBill={handleBill}
-                onImageClick={(imageUrl) => setImageDialog({ open: true, imageUrl })}
               />
             );
           })}
@@ -1147,6 +1191,7 @@ const PrescriptionList = ({ prescriptions, onVerify, onReject, onSubmitClaim, on
         onVerifyClose={() => setVerifyDialog({ open: false, prescription: null, prices: [] })}
         onVerifySubmit={handleVerifySubmit}
         onPriceChange={handlePriceChange}
+        onFulfilledChange={handleFulfilledChange}
         onDocumentClose={() => setDocumentDialog({ open: false, loading: false, document: null, description: "" })}
         onDocumentChange={(type, value) => {
           if (type === 'description') {

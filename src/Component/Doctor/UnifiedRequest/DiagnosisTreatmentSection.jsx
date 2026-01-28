@@ -4,18 +4,27 @@ import {
   Paper,
   Typography,
   Stack,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   FormControlLabel,
   Checkbox,
   Chip,
   TextField,
-  Grid,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Autocomplete,
+  createFilterOptions,
 } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
+import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import { useLanguage } from "../../../context/LanguageContext";
 import { t } from "../../../config/translations";
+
+const filter = createFilterOptions();
+const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
+const checkedIcon = <CheckBoxIcon fontSize="small" />;
 
 const DiagnosisTreatmentSection = ({
   noDiagnosisTreatment,
@@ -26,7 +35,7 @@ const DiagnosisTreatmentSection = ({
   specializations,
   availableDiagnoses,
   availableTreatments,
-  diagnosisTreatmentMappings = {}, // New prop for mappings
+  diagnosisTreatmentMappings = {},
   hasSameSpecializationRestriction,
   specializationRestrictionFailed,
   restrictionFailureReason,
@@ -36,7 +45,10 @@ const DiagnosisTreatmentSection = ({
 
   // State for selected diagnoses (multiple)
   const [selectedDiagnoses, setSelectedDiagnoses] = useState([]);
-  const [customDiagnosis, setCustomDiagnosis] = useState("");
+
+  // Dialog state for adding new diagnosis
+  const [addDiagnosisDialogOpen, setAddDiagnosisDialogOpen] = useState(false);
+  const [newDiagnosisName, setNewDiagnosisName] = useState("");
 
   // If specialization restrictions failed, show error message
   if (specializationRestrictionFailed) {
@@ -55,6 +67,42 @@ const DiagnosisTreatmentSection = ({
     );
   }
 
+  // Handle diagnosis selection change
+  const handleDiagnosisChange = (event, newValue) => {
+    // Check if user wants to add a new diagnosis
+    const addNewOption = newValue.find(item => item.inputValue);
+
+    if (addNewOption) {
+      // Open dialog to add new diagnosis
+      setNewDiagnosisName(addNewOption.inputValue);
+      setAddDiagnosisDialogOpen(true);
+      // Remove the "Add" option from selection
+      newValue = newValue.filter(item => !item.inputValue);
+    }
+
+    // Extract string values from the selection
+    const diagnosisStrings = newValue.map(item =>
+      typeof item === 'string' ? item : item.title || item
+    );
+
+    setSelectedDiagnoses(diagnosisStrings);
+    setPatientForm({ ...patientForm, diagnosis: diagnosisStrings.join(", ") });
+  };
+
+  // Handle adding new diagnosis
+  const handleAddNewDiagnosis = () => {
+    if (newDiagnosisName.trim()) {
+      const newDiagnosis = newDiagnosisName.trim();
+
+      // Add to selected diagnoses
+      const updatedDiagnoses = [...selectedDiagnoses, newDiagnosis];
+      setSelectedDiagnoses(updatedDiagnoses);
+      setPatientForm({ ...patientForm, diagnosis: updatedDiagnoses.join(", ") });
+    }
+    setAddDiagnosisDialogOpen(false);
+    setNewDiagnosisName("");
+  };
+
   return (
     <Paper elevation={2} sx={{ p: 3, borderRadius: 2, bgcolor: "#f0f9ff" }} dir={isRTL ? "rtl" : "ltr"}>
       <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
@@ -70,6 +118,7 @@ const DiagnosisTreatmentSection = ({
                 if (e.target.checked) {
                   // Clear diagnosis and treatment when checkbox is checked
                   setPatientForm((prev) => ({ ...prev, diagnosis: "", treatment: "" }));
+                  setSelectedDiagnoses([]);
                 }
               }}
               disabled={hasSameSpecializationRestriction}
@@ -92,59 +141,126 @@ const DiagnosisTreatmentSection = ({
             </Box>
           )}
 
-          {/* Diagnosis Selection - Multiple Checkboxes */}
+          {/* Diagnosis Selection - Searchable Multi-Select Autocomplete */}
           <Box sx={{ mb: 2 }}>
             <Typography variant="subtitle2" fontWeight={600} color="#0284c7" mb={1}>
               {t("diagnosisLabel", language)} *
             </Typography>
-            <Grid container spacing={1}>
-              {availableDiagnoses.map((diagnosis, index) => (
-                <Grid item xs={12} sm={6} key={index}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={selectedDiagnoses.includes(diagnosis)}
-                        onChange={(e) => {
-                          const newSelected = e.target.checked
-                            ? [...selectedDiagnoses, diagnosis]
-                            : selectedDiagnoses.filter((d) => d !== diagnosis);
-                          setSelectedDiagnoses(newSelected);
-
-                          // Update patientForm with comma-separated diagnoses
-                          const allDiagnoses = [...newSelected];
-                          if (customDiagnosis.trim()) {
-                            allDiagnoses.push(customDiagnosis.trim());
-                          }
-                          setPatientForm({ ...patientForm, diagnosis: allDiagnoses.join(", ") });
-                        }}
-                        disabled={!selectedSpecialization || hasSameSpecializationRestriction}
-                      />
-                    }
-                    label={diagnosis}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-
-            {/* Custom Diagnosis Input */}
-            <TextField
-              fullWidth
-              label={t("customDiagnosis", language) || "Custom Diagnosis"}
-              value={customDiagnosis}
-              onChange={(e) => {
-                setCustomDiagnosis(e.target.value);
-
-                // Update patientForm with comma-separated diagnoses
-                const allDiagnoses = [...selectedDiagnoses];
-                if (e.target.value.trim()) {
-                  allDiagnoses.push(e.target.value.trim());
-                }
-                setPatientForm({ ...patientForm, diagnosis: allDiagnoses.join(", ") });
-              }}
-              placeholder={t("enterCustomDiagnosis", language) || "Enter custom diagnosis..."}
+            <Autocomplete
+              multiple
+              freeSolo
+              disableCloseOnSelect
+              selectOnFocus
+              clearOnBlur
+              handleHomeEndKeys
+              id="diagnosis-autocomplete"
+              options={availableDiagnoses}
+              value={selectedDiagnoses}
+              onChange={handleDiagnosisChange}
               disabled={!selectedSpecialization || hasSameSpecializationRestriction}
-              sx={{ mt: 2 }}
+              filterOptions={(options, params) => {
+                const filtered = filter(options, params);
+
+                const { inputValue } = params;
+                // Check if the input matches any existing option
+                const isExisting = options.some(
+                  (option) => inputValue.toLowerCase() === option.toLowerCase()
+                );
+
+                // Add "Add new" option if input doesn't match existing options
+                if (inputValue !== '' && !isExisting) {
+                  filtered.push({
+                    inputValue,
+                    title: `${t("add", language) || "Add"} "${inputValue}"`,
+                  });
+                }
+
+                return filtered;
+              }}
+              getOptionLabel={(option) => {
+                // For "Add new" option
+                if (typeof option === 'object' && option.inputValue) {
+                  return option.title;
+                }
+                // For regular options
+                return option;
+              }}
+              renderOption={(props, option, { selected }) => {
+                const { key, ...otherProps } = props;
+                // Check if this is the "Add new" option
+                if (typeof option === 'object' && option.inputValue) {
+                  return (
+                    <li key={key} {...otherProps}>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <AddIcon sx={{ color: "#0284c7" }} />
+                        <Typography sx={{ color: "#0284c7", fontWeight: 600 }}>
+                          {option.title}
+                        </Typography>
+                      </Stack>
+                    </li>
+                  );
+                }
+                return (
+                  <li key={key} {...otherProps}>
+                    <Checkbox
+                      icon={icon}
+                      checkedIcon={checkedIcon}
+                      style={{ marginRight: 8 }}
+                      checked={selected}
+                    />
+                    {option}
+                  </li>
+                );
+              }}
+              renderTags={(value, getTagProps) =>
+                value.map((option, index) => {
+                  const { key, ...chipProps } = getTagProps({ index });
+                  return (
+                    <Chip
+                      key={key}
+                      label={option}
+                      {...chipProps}
+                      sx={{
+                        bgcolor: "#0284c7",
+                        color: "#fff",
+                        "& .MuiChip-deleteIcon": {
+                          color: "#fff",
+                          "&:hover": {
+                            color: "#e0f2fe",
+                          },
+                        },
+                      }}
+                    />
+                  );
+                })
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder={t("searchOrAddDiagnosis", language) || "Search or add diagnosis..."}
+                  sx={{
+                    bgcolor: "#fff",
+                    borderRadius: 1,
+                    "& .MuiOutlinedInput-root": {
+                      "&:hover fieldset": {
+                        borderColor: "#0284c7",
+                      },
+                      "&.Mui-focused fieldset": {
+                        borderColor: "#0284c7",
+                      },
+                    },
+                  }}
+                />
+              )}
+              sx={{
+                "& .MuiAutocomplete-tag": {
+                  margin: "2px",
+                },
+              }}
             />
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: "block" }}>
+              {t("diagnosisHint", language) || "Type to search. If not found, you can add a new diagnosis."}
+            </Typography>
           </Box>
 
           {/* Treatment Plan - Free Text Field */}
@@ -169,6 +285,57 @@ const DiagnosisTreatmentSection = ({
           </Typography>
         </Box>
       )}
+
+      {/* Dialog for adding new diagnosis */}
+      <Dialog
+        open={addDiagnosisDialogOpen}
+        onClose={() => setAddDiagnosisDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: "#f0f9ff", color: "#0284c7", fontWeight: 600 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <AddIcon />
+            <span>{t("addNewDiagnosis", language) || "Add New Diagnosis"}</span>
+          </Stack>
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            {t("addNewDiagnosisHint", language) || "This diagnosis will be added to your selection."}
+          </Typography>
+          <TextField
+            autoFocus
+            fullWidth
+            label={t("diagnosisName", language) || "Diagnosis Name"}
+            value={newDiagnosisName}
+            onChange={(e) => setNewDiagnosisName(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleAddNewDiagnosis();
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setAddDiagnosisDialogOpen(false)}
+            sx={{ color: "#64748b" }}
+          >
+            {t("cancel", language)}
+          </Button>
+          <Button
+            onClick={handleAddNewDiagnosis}
+            variant="contained"
+            disabled={!newDiagnosisName.trim()}
+            sx={{
+              bgcolor: "#0284c7",
+              "&:hover": { bgcolor: "#0369a1" },
+            }}
+          >
+            {t("add", language) || "Add"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 };

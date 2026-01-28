@@ -19,6 +19,17 @@ import {
   DialogTitle,
   IconButton,
   Grid,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  ToggleButton,
+  ToggleButtonGroup,
+  Collapse,
+  Tooltip,
 } from "@mui/material";
 import { api, getToken } from "../../utils/apiService";
 import { API_BASE_URL, API_ENDPOINTS, CURRENCY } from "../../config/api";
@@ -46,6 +57,17 @@ import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import FamilyRestroomIcon from "@mui/icons-material/FamilyRestroom";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
+import ViewListIcon from "@mui/icons-material/ViewList";
+import FilterListIcon from "@mui/icons-material/FilterList";
+import ClearIcon from "@mui/icons-material/Clear";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import InfoIcon from "@mui/icons-material/Info";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import Divider from "@mui/material/Divider";
 
 const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null }) => {
   const { language, isRTL } = useLanguage();
@@ -55,6 +77,21 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [openImage, setOpenImage] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+
+  // New states for enhanced features
+  const [viewMode, setViewMode] = useState("cards"); // "cards" or "table"
+  const [showFilters, setShowFilters] = useState(true); // Show filters by default
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(50); // 50 for table view
+  const [cardsPerPage] = useState(10); // 10 for card view
+
+  // View Details Dialog state
+  const [openDetails, setOpenDetails] = useState(false);
+  const [selectedClaim, setSelectedClaim] = useState(null);
+  const [claimPrescriptions, setClaimPrescriptions] = useState([]);
+  const [loadingPrescriptions, setLoadingPrescriptions] = useState(false);
 
   // Normalize userRole for consistent comparison
   const normalizedRole = useMemo(() => normalizeRole(userRole), [userRole]);
@@ -86,6 +123,54 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
     setSelectedImage(null);
   }, []);
 
+  // View Details handlers
+  const handleOpenDetails = useCallback(async (claim) => {
+    setSelectedClaim(claim);
+    setOpenDetails(true);
+    setClaimPrescriptions([]);
+
+    // Check if roleSpecificData already has medicines (new claims)
+    const roleData = safeJsonParse(claim.roleSpecificData, {});
+    if (roleData.medicines && roleData.medicines.length > 0) {
+      // New claim format - medicines already in roleSpecificData
+      return;
+    }
+
+    // For old claims (doctors only), try to fetch prescriptions
+    if (normalizedRole === ROLES.DOCTOR) {
+      try {
+        setLoadingPrescriptions(true);
+        // Use doctor/my endpoint to get all prescriptions by this doctor
+        const prescriptions = await api.get("/api/prescriptions/doctor/my");
+
+        if (prescriptions && Array.isArray(prescriptions)) {
+          // Filter prescriptions by patient name AND service date
+          const claimDate = new Date(claim.serviceDate);
+          const patientName = claim.familyMemberName || claim.clientName;
+
+          const matchingPrescriptions = prescriptions.filter(p => {
+            const prescDate = new Date(p.createdAt || p.prescriptionDate);
+            const sameDay = prescDate.toDateString() === claimDate.toDateString();
+            const samePatient = p.memberName === patientName || p.clientName === patientName;
+            return sameDay && samePatient;
+          });
+
+          setClaimPrescriptions(matchingPrescriptions);
+        }
+      } catch (err) {
+        logger.error("Error fetching prescriptions:", err);
+      } finally {
+        setLoadingPrescriptions(false);
+      }
+    }
+  }, [normalizedRole]);
+
+  const handleCloseDetails = useCallback(() => {
+    setOpenDetails(false);
+    setSelectedClaim(null);
+    setClaimPrescriptions([]);
+  }, []);
+
   // Fetch claims function using centralized API service
   const fetchClaims = useCallback(async () => {
     const authToken = getToken();
@@ -108,13 +193,11 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
     }
   }, []);
 
+  // Auto-fetch claims on mount
   useEffect(() => {
     const currentToken = getToken();
     if (currentToken) {
       fetchClaims();
-    } else {
-      logger.error("No token found");
-      setLoading(false);
     }
   }, [fetchClaims]);
 
@@ -127,6 +210,15 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
       }
     }
   }, [refreshTrigger, fetchClaims]);
+
+  // Handle search/filter button click
+  const handleSearch = useCallback(() => {
+    const currentToken = getToken();
+    if (currentToken) {
+      setPage(0); // Reset to first page when searching
+      fetchClaims();
+    }
+  }, [fetchClaims]);
 
   // Use centralized status functions from claimStateMachine
   const getClaimStatusColor = useCallback((status) => {
@@ -301,16 +393,44 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
 
   const roleConfig = getRoleConfig;
 
+  // Clear all filters
+  const clearAllFilters = useCallback(() => {
+    setSearchTerm("");
+    setFilterStatus("ALL");
+    setDateFrom("");
+    setDateTo("");
+  }, []);
+
+  // Check if any filter is active
+  const hasActiveFilters = useMemo(() => {
+    return searchTerm !== "" || filterStatus !== "ALL" || dateFrom !== "" || dateTo !== "";
+  }, [searchTerm, filterStatus, dateFrom, dateTo]);
+
   const filteredClaims = claims
     .filter((claim) => {
       const roleData = getRoleSpecificInfo(claim);
       const matchSearch =
         claim.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        claim.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         JSON.stringify(roleData).toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchFilter = filterStatus === "ALL" || claim.status === filterStatus;
 
-      return matchSearch && matchFilter;
+      // Date filtering
+      let matchDate = true;
+      if (dateFrom) {
+        const claimDate = new Date(claim.serviceDate);
+        const fromDate = new Date(dateFrom);
+        matchDate = matchDate && claimDate >= fromDate;
+      }
+      if (dateTo) {
+        const claimDate = new Date(claim.serviceDate);
+        const toDate = new Date(dateTo);
+        toDate.setHours(23, 59, 59, 999); // Include the entire end day
+        matchDate = matchDate && claimDate <= toDate;
+      }
+
+      return matchSearch && matchFilter && matchDate;
     })
     .sort((a, b) => {
       // ترتيب من الأحدث للأقدم
@@ -318,6 +438,17 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
       const dateB = new Date(b.serviceDate);
       return dateB - dateA;
     });
+
+  // Handle page change for table view
+  const handleChangePage = useCallback((event, newPage) => {
+    setPage(newPage);
+  }, []);
+
+  // Handle rows per page change
+  const handleChangeRowsPerPage = useCallback((event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  }, []);
 
   return (
     <Box dir={isRTL ? "rtl" : "ltr"} sx={{ px: { xs: 2, md: 4 }, py: 3, backgroundColor: "#FAF8F5", minHeight: "100vh" }}>
@@ -355,7 +486,7 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
 
         {/* Stats Summary */}
         <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid item xs={12} sm={2.4}>
+          <Grid item xs={6} sm={3}>
             <Box
               sx={{
                 bgcolor: "rgba(255,255,255,0.15)",
@@ -370,7 +501,7 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
               <Typography variant="body2">{t("total", language)}</Typography>
             </Box>
           </Grid>
-          <Grid item xs={12} sm={2.4}>
+          <Grid item xs={6} sm={3}>
             <Box
               sx={{
                 bgcolor: "rgba(255,255,255,0.15)",
@@ -385,7 +516,7 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
               <Typography variant="body2">{t("pendingMedicalStatus", language)}</Typography>
             </Box>
           </Grid>
-          <Grid item xs={12} sm={2.4}>
+          <Grid item xs={6} sm={3}>
             <Box
               sx={{
                 bgcolor: "rgba(255,255,255,0.15)",
@@ -400,7 +531,7 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
               <Typography variant="body2">{t("approved", language)}</Typography>
             </Box>
           </Grid>
-          <Grid item xs={12} sm={2.4}>
+          <Grid item xs={6} sm={3}>
             <Box
               sx={{
                 bgcolor: "rgba(255,255,255,0.15)",
@@ -415,20 +546,6 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
               <Typography variant="body2">{t("rejected", language)}</Typography>
             </Box>
           </Grid>
-          <Grid item xs={12} sm={2.4}>
-            <Box
-              sx={{
-                bgcolor: "rgba(255,255,255,0.15)",
-                p: 2,
-                borderRadius: 2,
-                backdropFilter: "blur(10px)",
-              }}
-            >
-              <Typography variant="h4" fontWeight="700">
-              </Typography>
-              <Typography variant="body2">{t("adminReview", language)}</Typography>
-            </Box>
-          </Grid>
         </Grid>
       </Paper>
 
@@ -436,28 +553,180 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
       <Card elevation={0} sx={{ borderRadius: 4, border: "1px solid #E8EDE0", mb: 4 }}>
         <CardContent sx={{ p: 3 }}>
           <Stack spacing={2}>
-            {/* Search Bar */}
-            <TextField
-              placeholder={t("searchClaimsPlaceholder", language)}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              fullWidth
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon sx={{ color: "text.secondary" }} />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 2,
-                  bgcolor: "#FAF8F5",
-                },
-              }}
-            />
+            {/* Top Row: Search, View Toggle, Filter Toggle */}
+            <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ md: "center" }}>
+              {/* Search Bar */}
+              <TextField
+                placeholder={t("searchClaimsPlaceholder", language)}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                fullWidth
+                size="small"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: "text.secondary" }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchTerm && (
+                    <InputAdornment position="end">
+                      <IconButton size="small" onClick={() => setSearchTerm("")}>
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  flex: 1,
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 2,
+                    bgcolor: "#FAF8F5",
+                  },
+                }}
+              />
 
-            {/* Filter Section */}
+              {/* View Mode Toggle */}
+              <ToggleButtonGroup
+                value={viewMode}
+                exclusive
+                onChange={(e, newMode) => newMode && setViewMode(newMode)}
+                size="small"
+                sx={{ bgcolor: "#FAF8F5", borderRadius: 2 }}
+              >
+                <ToggleButton value="cards" sx={{ px: 2 }}>
+                  <Tooltip title={t("cardView", language) || "Card View"}>
+                    <ViewModuleIcon />
+                  </Tooltip>
+                </ToggleButton>
+                <ToggleButton value="table" sx={{ px: 2 }}>
+                  <Tooltip title={t("tableView", language) || "Table View"}>
+                    <ViewListIcon />
+                  </Tooltip>
+                </ToggleButton>
+              </ToggleButtonGroup>
+
+              {/* Filter Toggle Button */}
+              <Button
+                variant={showFilters ? "contained" : "outlined"}
+                startIcon={<FilterListIcon />}
+                endIcon={showFilters ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                onClick={() => setShowFilters(!showFilters)}
+                sx={{
+                  textTransform: "none",
+                  borderRadius: 2,
+                  minWidth: 120,
+                  bgcolor: showFilters ? roleConfig.color : "transparent",
+                  borderColor: roleConfig.color,
+                  color: showFilters ? "white" : roleConfig.color,
+                  "&:hover": {
+                    bgcolor: showFilters ? roleConfig.color : `${roleConfig.color}10`,
+                    borderColor: roleConfig.color,
+                  },
+                }}
+              >
+                {t("filters", language) || "Filters"}
+                {hasActiveFilters && (
+                  <Chip
+                    size="small"
+                    label="!"
+                    sx={{
+                      ml: 1,
+                      height: 18,
+                      minWidth: 18,
+                      bgcolor: showFilters ? "white" : roleConfig.color,
+                      color: showFilters ? roleConfig.color : "white",
+                      fontSize: "0.7rem",
+                    }}
+                  />
+                )}
+              </Button>
+            </Stack>
+
+            {/* Collapsible Filters Panel */}
+            <Collapse in={showFilters}>
+              <Paper elevation={0} sx={{ p: 2, bgcolor: "#FAF8F5", borderRadius: 2, mt: 1 }}>
+                <Grid container spacing={2} alignItems="flex-end">
+                  {/* Date From */}
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: "#64748b", mb: 0.5, display: "block" }}>
+                      {t("dateFrom", language) || "Date From"}
+                    </Typography>
+                    <TextField
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      fullWidth
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                      sx={{ bgcolor: "white", borderRadius: 1 }}
+                    />
+                  </Grid>
+
+                  {/* Date To */}
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: "#64748b", mb: 0.5, display: "block" }}>
+                      {t("dateTo", language) || "Date To"}
+                    </Typography>
+                    <TextField
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      fullWidth
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                      sx={{ bgcolor: "white", borderRadius: 1 }}
+                    />
+                  </Grid>
+
+                  {/* Search Button */}
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Button
+                      variant="contained"
+                      startIcon={<SearchIcon />}
+                      onClick={handleSearch}
+                      disabled={loading}
+                      fullWidth
+                      sx={{
+                        textTransform: "none",
+                        borderRadius: 2,
+                        bgcolor: roleConfig.color,
+                        "&:hover": {
+                          bgcolor: roleConfig.color,
+                          opacity: 0.9,
+                        },
+                      }}
+                    >
+                      {loading ? (t("loading", language) || "Loading...") : (t("searchClaims", language) || "Search Claims")}
+                    </Button>
+                  </Grid>
+
+                  {/* Clear Filters Button */}
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<ClearIcon />}
+                      onClick={clearAllFilters}
+                      disabled={!hasActiveFilters}
+                      fullWidth
+                      sx={{
+                        textTransform: "none",
+                        borderRadius: 2,
+                        borderColor: "#94a3b8",
+                        color: "#64748b",
+                        "&:hover": {
+                          borderColor: "#64748b",
+                          bgcolor: "#f1f5f9",
+                        },
+                      }}
+                    >
+                      {t("clearFilters", language) || "Clear Filters"}
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Paper>
+            </Collapse>
+
+            {/* Status Filter Chips */}
             <Box>
               <Typography
                 variant="subtitle2"
@@ -474,28 +743,28 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
               </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                 {[
-  { status: "ALL", label: t("all", language), count: claims.length },
-  {
-    status: CLAIM_STATUS.PENDING_MEDICAL,
-    label: t("pendingMedicalStatus", language),
-    count: claims.filter(c => c.status === CLAIM_STATUS.PENDING_MEDICAL).length
-  },
-  {
-    status: CLAIM_STATUS.RETURNED_FOR_REVIEW,
-    label: t("returnedForReview", language),
-    count: claims.filter(c => c.status === CLAIM_STATUS.RETURNED_FOR_REVIEW).length
-  },
-  {
-    status: CLAIM_STATUS.APPROVED_FINAL,
-    label: t("approved", language),
-    count: claims.filter(c => c.status === CLAIM_STATUS.APPROVED_FINAL).length
-  },
-  {
-    status: CLAIM_STATUS.REJECTED_FINAL,
-    label: t("rejected", language),
-    count: claims.filter(c => c.status === CLAIM_STATUS.REJECTED_FINAL).length
-  },
-].map(({ status, label, count }) => (
+                  { status: "ALL", label: t("all", language), count: claims.length },
+                  {
+                    status: CLAIM_STATUS.PENDING_MEDICAL,
+                    label: t("pendingMedicalStatus", language),
+                    count: claims.filter(c => c.status === CLAIM_STATUS.PENDING_MEDICAL).length
+                  },
+                  {
+                    status: CLAIM_STATUS.RETURNED_FOR_REVIEW,
+                    label: t("returnedForReview", language),
+                    count: claims.filter(c => c.status === CLAIM_STATUS.RETURNED_FOR_REVIEW).length
+                  },
+                  {
+                    status: CLAIM_STATUS.APPROVED_FINAL,
+                    label: t("approved", language),
+                    count: claims.filter(c => c.status === CLAIM_STATUS.APPROVED_FINAL).length
+                  },
+                  {
+                    status: CLAIM_STATUS.REJECTED_FINAL,
+                    label: t("rejected", language),
+                    count: claims.filter(c => c.status === CLAIM_STATUS.REJECTED_FINAL).length
+                  },
+                ].map(({ status, label, count }) => (
                   <Chip
                     key={status}
                     label={`${label} (${count})`}
@@ -509,7 +778,6 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
                         : status === CLAIM_STATUS.RETURNED_FOR_REVIEW ? "info"
                         : "warning"
                     }
-
                     sx={{
                       fontWeight: 600,
                       borderRadius: 2,
@@ -529,23 +797,137 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
         {t("showingClaims", language)} <strong>{filteredClaims.length}</strong> {filteredClaims.length !== 1 ? t("claimPlural", language) : t("claimSingular", language)}
       </Typography>
 
-      {/* Claims Grid - Card Layout */}
+      {/* Claims Display - Table or Card View */}
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
-          <CircularProgress />
-        </Box>
-      ) : filteredClaims.length === 0 ? (
-        <Alert
-          severity="info"
-          sx={{
-            borderRadius: 4,
-            fontSize: "1rem",
-            "& .MuiAlert-icon": { fontSize: 28 },
-          }}
-        >
-          {claims.length === 0 ? t("noClaimsSubmitted", language) : t("noClaimsMatch", language)}
-        </Alert>
+            <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+              <CircularProgress />
+            </Box>
+          ) : filteredClaims.length === 0 ? (
+            <Alert
+              severity="info"
+              sx={{
+                borderRadius: 4,
+                fontSize: "1rem",
+                "& .MuiAlert-icon": { fontSize: 28 },
+              }}
+            >
+              {claims.length === 0 ? t("noClaimsSubmitted", language) : t("noClaimsMatch", language)}
+            </Alert>
+          ) : viewMode === "table" ? (
+        /* TABLE VIEW */
+        <Paper elevation={0} sx={{ borderRadius: 3, border: "1px solid #E8EDE0", overflow: "hidden" }}>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ bgcolor: roleConfig.color }}>
+                  <TableCell sx={{ color: "white", fontWeight: 700 }}>#</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: 700 }}>{t("patient", language) || "Patient"}</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: 700 }}>{t("description", language) || "Description"}</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: 700 }}>{t("amount", language) || "Amount"}</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: 700 }}>{t("date", language) || "Date"}</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: 700 }}>{t("status", language) || "Status"}</TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: 700, textAlign: "center" }}>{t("actions", language) || "Actions"}</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredClaims
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((claim, index) => {
+                    const statusConfig = getStatusConfig(claim.status);
+                    return (
+                      <TableRow
+                        key={claim.id}
+                        sx={{
+                          "&:hover": { bgcolor: "#f8fafc" },
+                          borderLeft: `4px solid ${statusConfig.borderColor}`,
+                        }}
+                      >
+                        <TableCell sx={{ fontWeight: 600 }}>{page * rowsPerPage + index + 1}</TableCell>
+                        <TableCell>
+                          <Stack>
+                            <Typography variant="body2" fontWeight={600}>
+                              {claim.familyMemberName || claim.clientName || "N/A"}
+                            </Typography>
+                            {claim.familyMemberName && claim.familyMemberRelation && (
+                              <Typography variant="caption" color="text.secondary">
+                                ({claim.familyMemberRelation})
+                              </Typography>
+                            )}
+                          </Stack>
+                        </TableCell>
+                        <TableCell sx={{ maxWidth: 250 }}>
+                          <Typography variant="body2" noWrap title={claim.description}>
+                            {claim.description ? sanitizeString(claim.description).substring(0, 50) + (claim.description.length > 50 ? "..." : "") : "N/A"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={600} color={roleConfig.color}>
+                            {parseFloat(claim.amount || 0).toFixed(2)} {CURRENCY.SYMBOL}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {formatClaimDate(claim.serviceDate)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            icon={getStatusIcon(claim.status)}
+                            label={getClaimStatusLabel(claim.status)}
+                            color={getClaimStatusColor(claim.status)}
+                            size="small"
+                            sx={{ fontWeight: 600, fontSize: "0.7rem" }}
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Stack direction="row" spacing={0.5} justifyContent="center">
+                            {/* View Details Button */}
+                            <Tooltip title={t("viewDetails", language) || "View Details"}>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleOpenDetails(claim)}
+                                sx={{ color: "#1976d2" }}
+                              >
+                                <InfoIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            {/* View Document Button */}
+                            {(Array.isArray(claim.invoiceImagePath)
+                              ? claim.invoiceImagePath.length > 0
+                              : !!claim.invoiceImagePath) && (
+                              <Tooltip title={t("viewDocument", language) || "View Document"}>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleOpenImage(claim.invoiceImagePath)}
+                                  sx={{ color: roleConfig.color }}
+                                >
+                                  <VisibilityIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            component="div"
+            count={filteredClaims.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            labelRowsPerPage={t("rowsPerPage", language) || "Rows per page:"}
+            sx={{ borderTop: "1px solid #E8EDE0" }}
+          />
+        </Paper>
       ) : (
+        /* CARD VIEW */
+        <>
         <Box
           sx={{
             display: "grid",
@@ -559,14 +941,17 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
             },
           }}
         >
-          {filteredClaims.map((claim, index) => {
+          {filteredClaims
+            .slice(page * cardsPerPage, page * cardsPerPage + cardsPerPage)
+            .map((claim, index) => {
             const roleData = getRoleSpecificInfo(claim);
             const isChronicPrescription = roleData?.isChronic === true; // ✅ للوصفات المزمنة
             const statusConfig = getStatusConfig(claim.status);
+            const actualIndex = page * cardsPerPage + index;
 
             // ✅ Debug: Log isChronic for each claim
             if (userRole === "PHARMACIST") {
-              logger.log(`Claim ${index + 1} (ID: ${claim.id}) - isChronicPrescription:`, isChronicPrescription, "roleData.isChronic:", roleData?.isChronic, "roleData:", roleData);
+              logger.log(`Claim ${actualIndex + 1} (ID: ${claim.id}) - isChronicPrescription:`, isChronicPrescription, "roleData.isChronic:", roleData?.isChronic, "roleData:", roleData);
             }
 
             return (
@@ -631,7 +1016,7 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
                         color: "white",
                       }}
                     >
-                      {t("claimLabel", language)} {index + 1}
+                      {t("claimLabel", language)} {actualIndex + 1}
                     </Typography>
                     <Chip
                       icon={getStatusIcon(claim.status)}
@@ -686,7 +1071,7 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
                               textTransform: "uppercase",
                             }}
                           >
-                            Patient Information
+                            {t("patientInformation", language) || "Patient Information"}
                           </Typography>
                         </Stack>
                         
@@ -700,21 +1085,26 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
                             <Stack direction="row" spacing={1.5} flexWrap="wrap">
                               {claim.familyMemberAge && (
                                 <Typography variant="caption" sx={{ color: "#556B2F", fontSize: "0.7rem" }}>
-                                  Age: {typeof claim.familyMemberAge === 'number' ? `${claim.familyMemberAge} years` : claim.familyMemberAge}
+                                  {t("age", language) || "Age"}: {typeof claim.familyMemberAge === 'number' ? `${claim.familyMemberAge} ${t("years", language) || "years"}` : claim.familyMemberAge}
                                 </Typography>
                               )}
                               {claim.familyMemberGender && (
                                 <Typography variant="caption" sx={{ color: "#556B2F", fontSize: "0.7rem" }}>
-                                  Gender: {claim.familyMemberGender}
+                                  {t("gender", language) || "Gender"}: {claim.familyMemberGender}
+                                </Typography>
+                              )}
+                              {claim.clientEmployeeId && (
+                                <Typography variant="caption" sx={{ color: "#556B2F", fontSize: "0.7rem" }}>
+                                  {t("employeeId", language) || "Emp ID"}: {claim.clientEmployeeId}
                                 </Typography>
                               )}
                             </Stack>
 
-                            {/* Main Client Info (shown when claim is for family member) */}
-                            {claim.clientName && (
+                            {/* Main Client Info (shown when claim is for family member) - hidden for simplified view */}
+                            {claim.clientName && normalizedRole !== ROLES.PHARMACIST && normalizedRole !== ROLES.LAB_TECH && normalizedRole !== ROLES.RADIOLOGIST && (
                               <Box sx={{ mt: 1, pt: 1, borderTop: "1px solid #7B8B5E" }}>
                                 <Typography variant="caption" sx={{ fontWeight: "600", color: "#556B2F", fontSize: "0.65rem", textTransform: "uppercase" }}>
-                                  Main Client
+                                  {t("mainClient", language) || "Main Client"}
                                 </Typography>
                                 <Typography variant="body2" sx={{ fontWeight: "600", color: "#3D4F23", fontSize: "0.8rem", mt: 0.3 }}>
                                   {claim.clientName}
@@ -722,12 +1112,12 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
                                 <Stack direction="row" spacing={1.5} flexWrap="wrap" sx={{ mt: 0.5 }}>
                                   {claim.clientAge && (
                                     <Typography variant="caption" sx={{ color: "#556B2F", fontSize: "0.7rem" }}>
-                                      Age: {typeof claim.clientAge === 'number' ? `${claim.clientAge} years` : claim.clientAge}
+                                      {t("age", language) || "Age"}: {typeof claim.clientAge === 'number' ? `${claim.clientAge} ${t("years", language) || "years"}` : claim.clientAge}
                                     </Typography>
                                   )}
                                   {claim.clientGender && (
                                     <Typography variant="caption" sx={{ color: "#556B2F", fontSize: "0.7rem" }}>
-                                      Gender: {claim.clientGender}
+                                      {t("gender", language) || "Gender"}: {claim.clientGender}
                                     </Typography>
                                   )}
                                 </Stack>
@@ -745,12 +1135,17 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
                             <Stack direction="row" spacing={1.5} flexWrap="wrap">
                               {claim.clientAge && (
                                 <Typography variant="caption" sx={{ color: "#556B2F", fontSize: "0.7rem" }}>
-                                  Age: {typeof claim.clientAge === 'number' ? `${claim.clientAge} years` : claim.clientAge}
+                                  {t("age", language) || "Age"}: {typeof claim.clientAge === 'number' ? `${claim.clientAge} ${t("years", language) || "years"}` : claim.clientAge}
                                 </Typography>
                               )}
                               {claim.clientGender && (
                                 <Typography variant="caption" sx={{ color: "#556B2F", fontSize: "0.7rem" }}>
-                                  Gender: {claim.clientGender}
+                                  {t("gender", language) || "Gender"}: {claim.clientGender}
+                                </Typography>
+                              )}
+                              {claim.clientEmployeeId && (
+                                <Typography variant="caption" sx={{ color: "#556B2F", fontSize: "0.7rem" }}>
+                                  {t("employeeId", language) || "Emp ID"}: {claim.clientEmployeeId}
                                 </Typography>
                               )}
                             </Stack>
@@ -817,8 +1212,8 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
                     </Paper>
                   )}
 
-                  {/* Description - Formatted for clients */}
-                  {claim.description && (() => {
+                  {/* Description - Only for DOCTOR and CLIENT roles */}
+                  {claim.description && normalizedRole !== ROLES.PHARMACIST && normalizedRole !== ROLES.LAB_TECH && normalizedRole !== ROLES.RADIOLOGIST && (() => {
                     const isClient = normalizedRole === ROLES.INSURANCE_CLIENT;
                     const formatted = formatDescription(claim.description, isClient);
                     // ✅ Use roleData.isChronic directly to ensure correct value for each claim
@@ -986,7 +1381,8 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
                     }
                   })()}
 
-                  {roleData.providerName && (
+                  {/* Provider Name - Only for DOCTOR and CLIENT roles */}
+                  {roleData.providerName && normalizedRole !== ROLES.PHARMACIST && normalizedRole !== ROLES.LAB_TECH && normalizedRole !== ROLES.RADIOLOGIST && (
   <Paper
     elevation={0}
     sx={{
@@ -1007,7 +1403,8 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
   </Paper>
 )}
 
-{roleData.doctorName && (() => {
+{/* Doctor Name - Only for DOCTOR and CLIENT roles */}
+{roleData.doctorName && normalizedRole !== ROLES.PHARMACIST && normalizedRole !== ROLES.LAB_TECH && normalizedRole !== ROLES.RADIOLOGIST && (() => {
   // Parse roleSpecificData to check if chronic prescription
   const parsedData = safeJsonParse(claim.roleSpecificData, {});
   const isChronic = parsedData?.isChronic === true || parsedData?.isChronic === "true";
@@ -1035,162 +1432,288 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
 })()}
 
                   {/* Medicines List - For Pharmacist Claims */}
-                  {normalizedRole === ROLES.PHARMACIST && roleData?.items && Array.isArray(roleData.items) && roleData.items.length > 0 && (
+                  {normalizedRole === ROLES.PHARMACIST && (() => {
+                    // Check for both 'items' (current format) and 'medicines' (legacy format)
+                    const medicinesList = roleData?.items || roleData?.medicines;
+                    if (!medicinesList || !Array.isArray(medicinesList) || medicinesList.length === 0) return null;
+
+                    return (
+                      <Paper
+                        elevation={0}
+                        sx={{
+                          p: 0,
+                          borderRadius: 2,
+                          bgcolor: "#fff",
+                          border: "1px solid #e2e8f0",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {/* Table Header */}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            px: 2,
+                            py: 1,
+                            bgcolor: "#556B2F",
+                            color: "white",
+                          }}
+                        >
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            <LocalPharmacyIcon sx={{ fontSize: 16 }} />
+                            <Typography variant="caption" fontWeight={700} sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}>
+                              {language === "ar" ? "الدواء" : "Medicine"}
+                            </Typography>
+                          </Stack>
+                          <Typography variant="caption" fontWeight={700} sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}>
+                            {language === "ar" ? "السعر" : "Price"}
+                          </Typography>
+                        </Box>
+                        {/* Table Body */}
+                        <Box sx={{ px: 2 }}>
+                          {medicinesList.map((med, idx) => (
+                            <Box
+                              key={`${med?.name || med?.medicineName || "med"}-${idx}`}
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                py: 1,
+                                borderBottom: idx < medicinesList.length - 1 ? "1px solid #e2e8f0" : "none",
+                              }}
+                            >
+                              <Typography variant="body2" fontWeight={600} color="#1e293b">
+                                {med?.name || med?.medicineName || "Medicine"}
+                              </Typography>
+                              <Typography variant="body2" fontWeight={700} color="#556B2F">
+                                {med?.price != null && med.price > 0
+                                  ? `${parseFloat(med.price).toFixed(2)} ${CURRENCY.SYMBOL}`
+                                  : "-"}
+                              </Typography>
+                            </Box>
+                          ))}
+                        </Box>
+                        {/* Billing Date Footer */}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            px: 2,
+                            py: 1,
+                            bgcolor: "#f8fafc",
+                            borderTop: "1px solid #e2e8f0",
+                          }}
+                        >
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                            {language === "ar" ? "تاريخ الفوترة:" : "Billing Date:"}
+                          </Typography>
+                          <Typography variant="caption" fontWeight={700} color="#556B2F">
+                            {formatClaimDate(claim.serviceDate)}
+                          </Typography>
+                        </Box>
+                      </Paper>
+                    );
+                  })()}
+
+                  {/* Lab Tests - For Lab Tech Claims */}
+                  {normalizedRole === ROLES.LAB_TECH && (roleData?.testName || (roleData?.items && roleData.items.length > 0)) && (
                     <Paper
                       elevation={0}
                       sx={{
-                        p: 1.5,
-                        borderRadius: 1.5,
-                        bgcolor: "#fef3c7",
-                        border: "1px solid #fde68a",
+                        p: 0,
+                        borderRadius: 2,
+                        bgcolor: "#fff",
+                        border: "1px solid #e2e8f0",
+                        overflow: "hidden",
                       }}
                     >
-                      <Stack spacing={1}>
+                      {/* Table Header */}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          px: 2,
+                          py: 1,
+                          bgcolor: "#1d4ed8",
+                          color: "white",
+                        }}
+                      >
                         <Stack direction="row" alignItems="center" spacing={1}>
-                          <Typography
-                            variant="caption"
+                          <ScienceIcon sx={{ fontSize: 16 }} />
+                          <Typography variant="caption" fontWeight={700} sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}>
+                            {language === "ar" ? "الفحص المخبري" : "Lab Test"}
+                          </Typography>
+                        </Stack>
+                        <Typography variant="caption" fontWeight={700} sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}>
+                          {language === "ar" ? "السعر" : "Price"}
+                        </Typography>
+                      </Box>
+                      {/* Table Body */}
+                      <Box sx={{ px: 2 }}>
+                        {roleData?.items && roleData.items.length > 0 ? (
+                          roleData.items.map((item, idx) => (
+                            <Box
+                              key={`lab-${item?.name || item?.testName || "item"}-${idx}`}
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                py: 1,
+                                borderBottom: idx < roleData.items.length - 1 ? "1px solid #e2e8f0" : "none",
+                              }}
+                            >
+                              <Typography variant="body2" fontWeight={600} color="#1e293b">
+                                {item?.name || item?.testName || "Lab Test"}
+                              </Typography>
+                              <Typography variant="body2" fontWeight={700} color="#1d4ed8">
+                                {item?.price != null && item.price > 0
+                                  ? `${parseFloat(item.price).toFixed(2)} ${CURRENCY.SYMBOL}`
+                                  : "-"}
+                              </Typography>
+                            </Box>
+                          ))
+                        ) : (
+                          <Box
                             sx={{
-                              fontWeight: "700",
-                              color: "#92400e",
-                              fontSize: "0.65rem",
-                              letterSpacing: "0.3px",
-                              textTransform: "uppercase",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              py: 1,
                             }}
                           >
-                            Medicines ({roleData.items.length})
-                          </Typography>
-                          {isChronicPrescription && (
-                            <Chip
-                              label="CHRONIC DISEASE"
-                              size="small"
-                              sx={{
-                                bgcolor: "#dc2626",
-                                color: "white",
-                                fontWeight: "700",
-                                fontSize: "0.6rem",
-                                height: 18,
-                              }}
-                            />
-                          )}
-                        </Stack>
-                        <Box
-                          component="ul"
-                          sx={{
-                            m: 0,
-                            pl: 2,
-                            listStyle: "none",
-                          }}
-                        >
-                          {roleData.items.map((item, idx) => {
-                            const getQuantityUnit = (form) => {
-                              if (!form) return "unit(s)";
-                              const formLower = String(form).toLowerCase();
-                              if (formLower.includes("tablet") || formLower.includes("capsule")) return "pill(s)";
-                              if (formLower.includes("syrup")) return "bottle(s)";
-                              if (formLower.includes("injection")) return "injection(s)";
-                              if (formLower.includes("cream") || formLower.includes("ointment")) return "tube(s)";
-                              if (formLower.includes("drop")) return "bottle(s)";
-                              return "unit(s)";
-                            };
+                            <Typography variant="body2" fontWeight={600} color="#1e293b">
+                              {roleData.testName}
+                            </Typography>
+                            <Typography variant="body2" fontWeight={700} color="#1d4ed8">
+                              {roleData.finalPrice || roleData.enteredPrice
+                                ? `${parseFloat(roleData.finalPrice || roleData.enteredPrice).toFixed(2)} ${CURRENCY.SYMBOL}`
+                                : "-"}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                      {/* Billing Date Footer */}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          px: 2,
+                          py: 1,
+                          bgcolor: "#f8fafc",
+                          borderTop: "1px solid #e2e8f0",
+                        }}
+                      >
+                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                          {language === "ar" ? "تاريخ الفوترة:" : "Billing Date:"}
+                        </Typography>
+                        <Typography variant="caption" fontWeight={700} color="#1d4ed8">
+                          {formatClaimDate(claim.serviceDate)}
+                        </Typography>
+                      </Box>
+                    </Paper>
+                  )}
 
-                            return (
-                              <Box
-                                key={`${item?.name || "item"}-${idx}`}
-                                sx={{
-                                  mb: 1,
-                                  pb: 1,
-                                  borderBottom: idx < roleData.items.length - 1 ? "1px solid #fde68a" : "none",
-                                }}
-                              >
-                                <Typography
-                                  variant="body2"
-                                  sx={{
-                                    fontWeight: "600",
-                                    fontSize: "0.85rem",
-                                    color: "#1e293b",
-                                    mb: 0.5,
-                                  }}
-                                >
-                                  {item?.name || "Medicine"}
-                                </Typography>
-                                <Stack direction="row" spacing={1.5} flexWrap="wrap">
-                                  {item?.form && (
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        fontSize: "0.7rem",
-                                        color: "#64748b",
-                                      }}
-                                    >
-                                      <b>Form:</b> {item.form}
-                                    </Typography>
-                                  )}
-                                  {item?.calculatedQuantity != null && item.calculatedQuantity > 0 && (
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        fontSize: "0.7rem",
-                                        color: isChronicPrescription ? "#dc2626" : "#64748b",
-                                        fontWeight: isChronicPrescription ? "600" : "400",
-                                      }}
-                                    >
-                                      <b>Quantity:</b> {item.calculatedQuantity} {getQuantityUnit(item?.form)}
-                                    </Typography>
-                                  )}
-                                  {!isChronicPrescription && item?.dosage != null && item?.dosage !== undefined && 
-                                   !String(item?.form || "").toLowerCase().includes("cream") && 
-                                   !String(item?.form || "").toLowerCase().includes("ointment") && (
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        fontSize: "0.7rem",
-                                        color: "#64748b",
-                                      }}
-                                    >
-                                      <b>Dosage:</b> {item.dosage} {String(item?.form || "").toLowerCase().includes("injection") ? "injection(s)" : String(item?.form || "").toLowerCase().includes("syrup") ? "ml" : String(item?.form || "").toLowerCase().includes("drop") ? "drop(s)" : "pill(s)"}
-                                    </Typography>
-                                  )}
-                                  {!isChronicPrescription && item?.timesPerDay != null && item?.timesPerDay !== undefined && 
-                                   !String(item?.form || "").toLowerCase().includes("injection") && (
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        fontSize: "0.7rem",
-                                        color: "#64748b",
-                                      }}
-                                    >
-                                      <b>Times/Day:</b> {item.timesPerDay}
-                                    </Typography>
-                                  )}
-                                  {!isChronicPrescription && item?.duration != null && item?.duration !== undefined && (
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        fontSize: "0.7rem",
-                                        color: "#64748b",
-                                      }}
-                                    >
-                                      <b>Duration:</b> {item.duration} day(s)
-                                    </Typography>
-                                  )}
-                                  {item?.price != null && item.price > 0 && (
-                                    <Typography
-                                      variant="caption"
-                                      sx={{
-                                        fontSize: "0.7rem",
-                                        color: "#8B9A46",
-                                        fontWeight: "600",
-                                      }}
-                                    >
-                                      <b>Price:</b> {parseFloat(item.price).toFixed(2)} {CURRENCY.SYMBOL}
-                                    </Typography>
-                                  )}
-                                </Stack>
-                              </Box>
-                            );
-                          })}
-                        </Box>
-                      </Stack>
+                  {/* Radiology Tests - For Radiologist Claims */}
+                  {normalizedRole === ROLES.RADIOLOGIST && (roleData?.testName || (roleData?.items && roleData.items.length > 0)) && (
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: 0,
+                        borderRadius: 2,
+                        bgcolor: "#fff",
+                        border: "1px solid #e2e8f0",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {/* Table Header */}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          px: 2,
+                          py: 1,
+                          bgcolor: "#7c3aed",
+                          color: "white",
+                        }}
+                      >
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <ImageSearchIcon sx={{ fontSize: 16 }} />
+                          <Typography variant="caption" fontWeight={700} sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}>
+                            {language === "ar" ? "فحص الأشعة" : "Radiology Test"}
+                          </Typography>
+                        </Stack>
+                        <Typography variant="caption" fontWeight={700} sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}>
+                          {language === "ar" ? "السعر" : "Price"}
+                        </Typography>
+                      </Box>
+                      {/* Table Body */}
+                      <Box sx={{ px: 2 }}>
+                        {roleData?.items && roleData.items.length > 0 ? (
+                          roleData.items.map((item, idx) => (
+                            <Box
+                              key={`rad-${item?.name || item?.testName || "item"}-${idx}`}
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                py: 1,
+                                borderBottom: idx < roleData.items.length - 1 ? "1px solid #e2e8f0" : "none",
+                              }}
+                            >
+                              <Typography variant="body2" fontWeight={600} color="#1e293b">
+                                {item?.name || item?.testName || "Radiology Test"}
+                              </Typography>
+                              <Typography variant="body2" fontWeight={700} color="#7c3aed">
+                                {item?.price != null && item.price > 0
+                                  ? `${parseFloat(item.price).toFixed(2)} ${CURRENCY.SYMBOL}`
+                                  : "-"}
+                              </Typography>
+                            </Box>
+                          ))
+                        ) : (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              py: 1,
+                            }}
+                          >
+                            <Typography variant="body2" fontWeight={600} color="#1e293b">
+                              {roleData.testName}
+                            </Typography>
+                            <Typography variant="body2" fontWeight={700} color="#7c3aed">
+                              {roleData.finalPrice || roleData.approvedPrice || roleData.enteredPrice
+                                ? `${parseFloat(roleData.finalPrice || roleData.approvedPrice || roleData.enteredPrice).toFixed(2)} ${CURRENCY.SYMBOL}`
+                                : "-"}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                      {/* Billing Date Footer */}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          px: 2,
+                          py: 1,
+                          bgcolor: "#f8fafc",
+                          borderTop: "1px solid #e2e8f0",
+                        }}
+                      >
+                        <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                          {language === "ar" ? "تاريخ الفوترة:" : "Billing Date:"}
+                        </Typography>
+                        <Typography variant="caption" fontWeight={700} color="#7c3aed">
+                          {formatClaimDate(claim.serviceDate)}
+                        </Typography>
+                      </Box>
                     </Paper>
                   )}
 
@@ -1226,7 +1749,7 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
                                 textTransform: "uppercase",
                               }}
                             >
-                              Amount
+                              {t("total", language) || "Total"}
                             </Typography>
                             <Typography
                               variant="body2"
@@ -1273,7 +1796,7 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
                                 textTransform: "uppercase",
                               }}
                             >
-                              Date
+                              {t("date", language) || "Date"}
                             </Typography>
                             <Typography
                               variant="body2"
@@ -1291,55 +1814,149 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
                     </Grid>
                   </Grid>
 
-                  {/* View Document Button */}
+                  {/* Action Buttons */}
                   <Box sx={{ mt: "auto" }}>
-{(Array.isArray(claim.invoiceImagePath)
-  ? claim.invoiceImagePath.length > 0
-  : !!claim.invoiceImagePath) ? (
+                    <Stack spacing={1}>
+                      {/* View Details Button - Only for DOCTOR and CLIENT roles */}
+                      {normalizedRole !== ROLES.PHARMACIST && normalizedRole !== ROLES.LAB_TECH && normalizedRole !== ROLES.RADIOLOGIST && (
                       <Button
-                        variant="contained"
+                        variant="outlined"
                         fullWidth
-                        startIcon={<InsertDriveFileIcon />}
-                        onClick={() => handleOpenImage(claim.invoiceImagePath)}
+                        startIcon={<InfoIcon />}
+                        onClick={() => handleOpenDetails(claim)}
                         sx={{
-                          py: 1.2,
+                          py: 1,
                           textTransform: "none",
                           fontWeight: "600",
                           borderRadius: 2,
-                          backgroundColor: roleConfig.color,
+                          borderColor: "#1976d2",
+                          color: "#1976d2",
                           "&:hover": {
-                            backgroundColor: roleConfig.color,
-                            opacity: 0.9,
+                            borderColor: "#1565c0",
+                            bgcolor: "#e3f2fd",
                             transform: "translateY(-2px)",
-                            boxShadow: `0 4px 12px ${roleConfig.color}40`,
                           },
                           transition: "all 0.2s ease",
                         }}
                       >
-                        View Document
+                        {t("viewDetails", language) || "View Details"}
                       </Button>
-                    ) : (
-                      <Paper
-                        elevation={0}
-                        sx={{
-                          p: 1.5,
-                          borderRadius: 2,
-                          bgcolor: "#f5f5f5",
-                          border: "1px dashed #d1d5db",
-                          textAlign: "center",
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary" fontStyle="italic" sx={{ fontSize: "0.75rem" }}>
-                          No document attached
-                        </Typography>
-                      </Paper>
-                    )}
+                      )}
+
+                      {/* View Document Button */}
+                      {(Array.isArray(claim.invoiceImagePath)
+                        ? claim.invoiceImagePath.length > 0
+                        : !!claim.invoiceImagePath) ? (
+                        <Button
+                          variant="contained"
+                          fullWidth
+                          startIcon={<InsertDriveFileIcon />}
+                          onClick={() => handleOpenImage(claim.invoiceImagePath)}
+                          sx={{
+                            py: 1,
+                            textTransform: "none",
+                            fontWeight: "600",
+                            borderRadius: 2,
+                            backgroundColor: roleConfig.color,
+                            "&:hover": {
+                              backgroundColor: roleConfig.color,
+                              opacity: 0.9,
+                              transform: "translateY(-2px)",
+                              boxShadow: `0 4px 12px ${roleConfig.color}40`,
+                            },
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          {t("viewDocument", language) || "View Document"}
+                        </Button>
+                      ) : (
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            p: 1,
+                            borderRadius: 2,
+                            bgcolor: "#f5f5f5",
+                            border: "1px dashed #d1d5db",
+                            textAlign: "center",
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary" fontStyle="italic" sx={{ fontSize: "0.75rem" }}>
+                            {t("noDocumentAttached", language) || "No document attached"}
+                          </Typography>
+                        </Paper>
+                      )}
+                    </Stack>
                   </Box>
                 </CardContent>
               </Card>
             );
           })}
         </Box>
+
+        {/* Card View Pagination */}
+        {filteredClaims.length > cardsPerPage && (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 2,
+              mt: 4,
+              py: 2,
+            }}
+          >
+            <Button
+              variant="outlined"
+              startIcon={<ChevronLeftIcon />}
+              onClick={() => setPage(prev => Math.max(0, prev - 1))}
+              disabled={page === 0}
+              sx={{
+                textTransform: "none",
+                borderRadius: 2,
+                borderColor: roleConfig.color,
+                color: roleConfig.color,
+                "&:hover": {
+                  borderColor: roleConfig.color,
+                  bgcolor: `${roleConfig.color}10`,
+                },
+                "&.Mui-disabled": {
+                  borderColor: "#ccc",
+                  color: "#ccc",
+                },
+              }}
+            >
+              {t("previous", language) || "Previous"}
+            </Button>
+
+            <Typography variant="body1" sx={{ fontWeight: 600, color: "text.primary", minWidth: 120, textAlign: "center" }}>
+              {t("page", language) || "Page"} {page + 1} / {Math.ceil(filteredClaims.length / cardsPerPage)}
+            </Typography>
+
+            <Button
+              variant="outlined"
+              endIcon={<ChevronRightIcon />}
+              onClick={() => setPage(prev => Math.min(Math.ceil(filteredClaims.length / cardsPerPage) - 1, prev + 1))}
+              disabled={page >= Math.ceil(filteredClaims.length / cardsPerPage) - 1}
+              sx={{
+                textTransform: "none",
+                borderRadius: 2,
+                borderColor: roleConfig.color,
+                color: roleConfig.color,
+                "&:hover": {
+                  borderColor: roleConfig.color,
+                  bgcolor: `${roleConfig.color}10`,
+                },
+                "&.Mui-disabled": {
+                  borderColor: "#ccc",
+                  color: "#ccc",
+                },
+              }}
+            >
+              {t("next", language) || "Next"}
+            </Button>
+          </Box>
+        )}
+        </>
       )}
 
       {/* Image Viewer Dialog */}
@@ -1395,6 +2012,335 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
               />
             </Box>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Claim Details Dialog */}
+      <Dialog
+        open={openDetails}
+        onClose={handleCloseDetails}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            bgcolor: roleConfig.color,
+            color: "white",
+          }}
+        >
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <InfoIcon />
+            <Typography variant="h6" fontWeight="700">
+              {t("claimDetails", language) || "Claim Details"}
+            </Typography>
+          </Stack>
+          <IconButton
+            onClick={handleCloseDetails}
+            sx={{ color: "white" }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          {selectedClaim && (() => {
+            const detailsRoleData = safeJsonParse(selectedClaim.roleSpecificData, {});
+            const statusConfig = getStatusConfig(selectedClaim.status);
+
+            return (
+              <Box sx={{ p: 3 }}>
+                {/* Status Badge */}
+                <Box sx={{ mb: 3, display: "flex", justifyContent: "center" }}>
+                  <Chip
+                    icon={getStatusIcon(selectedClaim.status)}
+                    label={getClaimStatusLabel(selectedClaim.status)}
+                    color={getClaimStatusColor(selectedClaim.status)}
+                    sx={{ fontWeight: 700, fontSize: "0.9rem", py: 2.5, px: 1 }}
+                  />
+                </Box>
+
+                <Grid container spacing={3}>
+                  {/* Patient Information */}
+                  <Grid item xs={12} md={6}>
+                    <Paper elevation={0} sx={{ p: 2, bgcolor: "#f8fafc", borderRadius: 2, border: "1px solid #e2e8f0", height: "100%" }}>
+                      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                        <PersonIcon sx={{ color: roleConfig.color }} />
+                        <Typography variant="subtitle1" fontWeight={700} color={roleConfig.color}>
+                          {t("patientInformation", language) || "Patient Information"}
+                        </Typography>
+                      </Stack>
+                      <Divider sx={{ mb: 1.5 }} />
+                      <Stack spacing={1}>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">{t("name", language) || "Name"}</Typography>
+                          <Typography variant="body1" fontWeight={600}>
+                            {selectedClaim.familyMemberName || selectedClaim.clientName || "N/A"}
+                          </Typography>
+                        </Box>
+                        {selectedClaim.familyMemberName && selectedClaim.familyMemberRelation && (
+                          <Box>
+                            <Typography variant="caption" color="text.secondary">{t("relation", language) || "Relation"}</Typography>
+                            <Typography variant="body2">{selectedClaim.familyMemberRelation}</Typography>
+                          </Box>
+                        )}
+                        {(selectedClaim.clientAge || selectedClaim.familyMemberAge) && (
+                          <Box>
+                            <Typography variant="caption" color="text.secondary">{t("age", language) || "Age"}</Typography>
+                            <Typography variant="body2">{selectedClaim.familyMemberAge || selectedClaim.clientAge} {t("years", language) || "years"}</Typography>
+                          </Box>
+                        )}
+                        {(selectedClaim.clientGender || selectedClaim.familyMemberGender) && (
+                          <Box>
+                            <Typography variant="caption" color="text.secondary">{t("gender", language) || "Gender"}</Typography>
+                            <Typography variant="body2">{selectedClaim.familyMemberGender || selectedClaim.clientGender}</Typography>
+                          </Box>
+                        )}
+                      </Stack>
+                    </Paper>
+                  </Grid>
+
+                  {/* Claim Summary */}
+                  <Grid item xs={12} md={6}>
+                    <Paper elevation={0} sx={{ p: 2, bgcolor: "#f8fafc", borderRadius: 2, border: "1px solid #e2e8f0", height: "100%" }}>
+                      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                        <ReceiptIcon sx={{ color: roleConfig.color }} />
+                        <Typography variant="subtitle1" fontWeight={700} color={roleConfig.color}>
+                          {t("claimSummary", language) || "Claim Summary"}
+                        </Typography>
+                      </Stack>
+                      <Divider sx={{ mb: 1.5 }} />
+                      <Stack spacing={1}>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">{t("serviceDate", language) || "Service Date"}</Typography>
+                          <Typography variant="body1" fontWeight={600}>{formatClaimDate(selectedClaim.serviceDate)}</Typography>
+                        </Box>
+                        {selectedClaim.submittedAt && (
+                          <Box>
+                            <Typography variant="caption" color="text.secondary">{t("submittedAt", language) || "Submitted At"}</Typography>
+                            <Typography variant="body1" fontWeight={600}>{formatClaimDate(selectedClaim.submittedAt)}</Typography>
+                          </Box>
+                        )}
+                        <Box>
+                          <Typography variant="caption" color="text.secondary">{t("amount", language) || "Amount"}</Typography>
+                          <Typography variant="body1" fontWeight={700} color={roleConfig.color}>
+                            {parseFloat(selectedClaim.amount || 0).toFixed(2)} {CURRENCY.SYMBOL}
+                          </Typography>
+                        </Box>
+                        {selectedClaim.description && (
+                          <Box>
+                            <Typography variant="caption" color="text.secondary">{t("description", language) || "Description"}</Typography>
+                            <Typography variant="body2">{sanitizeString(selectedClaim.description)}</Typography>
+                          </Box>
+                        )}
+                      </Stack>
+                    </Paper>
+                  </Grid>
+
+                  {/* Diagnosis Section */}
+                  {(selectedClaim.diagnosis || detailsRoleData.diagnosis) && (
+                    <Grid item xs={12}>
+                      <Paper elevation={0} sx={{ p: 2, bgcolor: "#fef3c7", borderRadius: 2, border: "1px solid #fde68a" }}>
+                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                          <MedicalServicesIcon sx={{ color: "#92400e" }} />
+                          <Typography variant="subtitle1" fontWeight={700} color="#92400e">
+                            {t("diagnosis", language) || "Diagnosis"}
+                          </Typography>
+                        </Stack>
+                        <Divider sx={{ mb: 1.5, borderColor: "#fde68a" }} />
+                        {(() => {
+                          const diagnosisData = selectedClaim.diagnosis || detailsRoleData.diagnosis;
+                          if (Array.isArray(diagnosisData)) {
+                            return (
+                              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                                {diagnosisData.map((d, idx) => (
+                                  <Chip key={idx} label={d} size="small" sx={{ bgcolor: "#fef9c3", fontWeight: 600 }} />
+                                ))}
+                              </Stack>
+                            );
+                          }
+                          return <Typography variant="body1">{sanitizeString(String(diagnosisData))}</Typography>;
+                        })()}
+                      </Paper>
+                    </Grid>
+                  )}
+
+                  {/* Medicines Section - from roleSpecificData or fetched prescriptions */}
+                  {(() => {
+                    // Check if we have medicines in roleSpecificData (new format)
+                    const embeddedMedicines = detailsRoleData.medicines || detailsRoleData.items;
+                    const hasMedicines = embeddedMedicines && Array.isArray(embeddedMedicines) && embeddedMedicines.length > 0;
+
+                    // Check if we have fetched prescriptions (old format)
+                    const hasPrescriptions = claimPrescriptions && claimPrescriptions.length > 0;
+
+                    if (!hasMedicines && !hasPrescriptions && !loadingPrescriptions) return null;
+
+                    // Get all medicine items from prescriptions
+                    const prescriptionItems = hasPrescriptions
+                      ? claimPrescriptions.flatMap(p => p.items || [])
+                      : [];
+
+                    const allMedicines = hasMedicines ? embeddedMedicines : prescriptionItems;
+                    const totalCount = allMedicines.length;
+
+                    if (totalCount === 0 && !loadingPrescriptions) return null;
+
+                    return (
+                      <Grid item xs={12}>
+                        <Paper elevation={0} sx={{ p: 2, bgcolor: "#ecfdf5", borderRadius: 2, border: "1px solid #a7f3d0" }}>
+                          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                            <LocalPharmacyIcon sx={{ color: "#047857" }} />
+                            <Typography variant="subtitle1" fontWeight={700} color="#047857">
+                              {t("medicines", language) || "Medicines"} {totalCount > 0 && `(${totalCount})`}
+                            </Typography>
+                            {loadingPrescriptions && <CircularProgress size={16} sx={{ color: "#047857" }} />}
+                          </Stack>
+                          <Divider sx={{ mb: 1.5, borderColor: "#a7f3d0" }} />
+                          {loadingPrescriptions ? (
+                            <Typography variant="body2" color="text.secondary">{t("loading", language) || "Loading..."}</Typography>
+                          ) : (
+                            <TableContainer>
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow sx={{ bgcolor: "#d1fae5" }}>
+                                    <TableCell sx={{ fontWeight: 700 }}>{t("medicineName", language) || "Medicine Name"}</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>{t("form", language) || "Form"}</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>{t("quantity", language) || "Quantity"}</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>{t("dosage", language) || "Dosage"}</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>{t("duration", language) || "Duration"}</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>{t("price", language) || "Price"}</TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {allMedicines.map((med, idx) => (
+                                    <TableRow key={idx}>
+                                      <TableCell sx={{ fontWeight: 600 }}>{med.name || med.medicineName || med.medicine?.serviceName || "N/A"}</TableCell>
+                                      <TableCell>{med.form || "-"}</TableCell>
+                                      <TableCell>{med.calculatedQuantity || med.quantity || "-"}</TableCell>
+                                      <TableCell>{med.dosage ? `${med.dosage} x ${med.timesPerDay || 1}/day` : "-"}</TableCell>
+                                      <TableCell>{med.duration ? `${med.duration} days` : "-"}</TableCell>
+                                      <TableCell sx={{ fontWeight: 600, color: roleConfig.color }}>
+                                        {med.price || med.medicine?.basePrice ? `${parseFloat(med.price || med.medicine?.basePrice || 0).toFixed(2)} ${CURRENCY.SYMBOL}` : "-"}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </TableContainer>
+                          )}
+                        </Paper>
+                      </Grid>
+                    );
+                  })()}
+
+                  {/* Lab Tests Section */}
+                  {detailsRoleData.labTests && Array.isArray(detailsRoleData.labTests) && detailsRoleData.labTests.length > 0 && (
+                    <Grid item xs={12} md={6}>
+                      <Paper elevation={0} sx={{ p: 2, bgcolor: "#eff6ff", borderRadius: 2, border: "1px solid #bfdbfe" }}>
+                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                          <ScienceIcon sx={{ color: "#1d4ed8" }} />
+                          <Typography variant="subtitle1" fontWeight={700} color="#1d4ed8">
+                            {t("labTests", language) || "Lab Tests"} ({detailsRoleData.labTests.length})
+                          </Typography>
+                        </Stack>
+                        <Divider sx={{ mb: 1.5, borderColor: "#bfdbfe" }} />
+                        <Stack spacing={1}>
+                          {detailsRoleData.labTests.map((test, idx) => (
+                            <Paper key={idx} elevation={0} sx={{ p: 1.5, bgcolor: "#dbeafe", borderRadius: 1 }}>
+                              <Typography variant="body2" fontWeight={600}>{test.name || test.testName || test}</Typography>
+                              {test.price && (
+                                <Typography variant="caption" color="text.secondary">
+                                  {t("price", language) || "Price"}: {parseFloat(test.price).toFixed(2)} {CURRENCY.SYMBOL}
+                                </Typography>
+                              )}
+                            </Paper>
+                          ))}
+                        </Stack>
+                      </Paper>
+                    </Grid>
+                  )}
+
+                  {/* Radiology Tests Section */}
+                  {detailsRoleData.radiologyTests && Array.isArray(detailsRoleData.radiologyTests) && detailsRoleData.radiologyTests.length > 0 && (
+                    <Grid item xs={12} md={6}>
+                      <Paper elevation={0} sx={{ p: 2, bgcolor: "#fdf4ff", borderRadius: 2, border: "1px solid #e9d5ff" }}>
+                        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                          <ImageSearchIcon sx={{ color: "#7c3aed" }} />
+                          <Typography variant="subtitle1" fontWeight={700} color="#7c3aed">
+                            {t("radiologyTests", language) || "Radiology Tests"} ({detailsRoleData.radiologyTests.length})
+                          </Typography>
+                        </Stack>
+                        <Divider sx={{ mb: 1.5, borderColor: "#e9d5ff" }} />
+                        <Stack spacing={1}>
+                          {detailsRoleData.radiologyTests.map((test, idx) => (
+                            <Paper key={idx} elevation={0} sx={{ p: 1.5, bgcolor: "#f3e8ff", borderRadius: 1 }}>
+                              <Typography variant="body2" fontWeight={600}>{test.name || test.testName || test}</Typography>
+                              {test.price && (
+                                <Typography variant="caption" color="text.secondary">
+                                  {t("price", language) || "Price"}: {parseFloat(test.price).toFixed(2)} {CURRENCY.SYMBOL}
+                                </Typography>
+                              )}
+                            </Paper>
+                          ))}
+                        </Stack>
+                      </Paper>
+                    </Grid>
+                  )}
+
+                  {/* Treatment Notes */}
+                  {(selectedClaim.treatmentDetails || selectedClaim.treatment || detailsRoleData.treatment || detailsRoleData.treatmentNotes) && (
+                    <Grid item xs={12}>
+                      <Paper elevation={0} sx={{ p: 2, bgcolor: "#f0fdf4", borderRadius: 2, border: "1px solid #bbf7d0" }}>
+                        <Typography variant="subtitle1" fontWeight={700} color="#166534" sx={{ mb: 1 }}>
+                          {t("treatmentNotes", language) || "Treatment Notes"}
+                        </Typography>
+                        <Typography variant="body2">
+                          {sanitizeString(selectedClaim.treatmentDetails || selectedClaim.treatment || detailsRoleData.treatment || detailsRoleData.treatmentNotes)}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  )}
+
+                  {/* View Document Button */}
+                  {(Array.isArray(selectedClaim.invoiceImagePath)
+                    ? selectedClaim.invoiceImagePath.length > 0
+                    : !!selectedClaim.invoiceImagePath) && (
+                    <Grid item xs={12}>
+                      <Button
+                        variant="contained"
+                        fullWidth
+                        startIcon={<InsertDriveFileIcon />}
+                        onClick={() => {
+                          handleCloseDetails();
+                          handleOpenImage(selectedClaim.invoiceImagePath);
+                        }}
+                        sx={{
+                          py: 1.5,
+                          textTransform: "none",
+                          fontWeight: "600",
+                          borderRadius: 2,
+                          backgroundColor: roleConfig.color,
+                          "&:hover": {
+                            backgroundColor: roleConfig.color,
+                            opacity: 0.9,
+                          },
+                        }}
+                      >
+                        {t("viewDocument", language) || "View Document"}
+                      </Button>
+                    </Grid>
+                  )}
+                </Grid>
+              </Box>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </Box>

@@ -27,9 +27,9 @@ import ScienceIcon from "@mui/icons-material/Science";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import AddBusinessIcon from "@mui/icons-material/AddBusiness";
-import BiotechIcon from "@mui/icons-material/Biotech";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import PaidIcon from "@mui/icons-material/Paid";
+import AssessmentIcon from "@mui/icons-material/Assessment";
 
 import LogoutDialog from "../Auth/LogoutDialog";
 
@@ -212,6 +212,20 @@ const LabSidebar = memo(function LabSidebar({ activeView, setActiveView }) {
           </ListItemButton>
         </Tooltip>
 
+        {/* Financial Report */}
+        <Tooltip title={t("financialReport", language) || "Financial Report"} placement={isRTL ? "left" : "right"} disableHoverListener={open || isDrawer}>
+          <ListItemButton
+            onClick={() => handleNavClick("financial-report")}
+            selected={activeView === "financial-report"}
+            sx={{ "&.Mui-selected": { backgroundColor: "rgba(255,255,255,0.2)" } }}
+          >
+            <ListItemIcon>
+              <AssessmentIcon sx={{ color: "#81C784", fontSize: { xs: 26, sm: 22 } }} />
+            </ListItemIcon>
+            {(open || isDrawer) && <ListItemText primary={t("financialReport", language) || "Financial Report"} />}
+          </ListItemButton>
+        </Tooltip>
+
         {/* Consultation Prices */}
         <Tooltip title={t("consultationPrices", language)} placement={isRTL ? "left" : "right"} disableHoverListener={open || isDrawer}>
           <ListItemButton
@@ -248,19 +262,6 @@ const LabSidebar = memo(function LabSidebar({ activeView, setActiveView }) {
           </ListItemButton>
         </Tooltip>
 
-        {/* Lab Profile */}
-        <Tooltip title={t("profiles", language)} placement={isRTL ? "left" : "right"} disableHoverListener={open || isDrawer}>
-          <ListItemButton
-            onClick={() => handleNavClick("labProfiles")}
-            selected={activeView === "labProfiles"}
-            sx={{ "&.Mui-selected": { backgroundColor: "rgba(255,255,255,0.2)" } }}
-          >
-            <ListItemIcon>
-              <BiotechIcon sx={{ color: "#FF9800", fontSize: { xs: 26, sm: 22 } }} />
-            </ListItemIcon>
-            {(open || isDrawer) && <ListItemText primary={t("myProfiles", language)} />}
-          </ListItemButton>
-        </Tooltip>
         <Divider sx={{ my: 1, borderColor: "rgba(255,255,255,0.2)" }} />
 
         {/* Account Section */}

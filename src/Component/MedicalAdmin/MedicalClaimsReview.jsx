@@ -99,6 +99,16 @@ const MedicalClaimsReview = () => {
   const [selectedTab, setSelectedTab] = useState(0);
 
   // ==========================================
+  // DIAGNOSIS EDITING STATES
+  // ==========================================
+  const [editedDiagnosis, setEditedDiagnosis] = useState("");
+  const [isEditingDiagnosis, setIsEditingDiagnosis] = useState(false);
+  const [openSaveDiagnosisDialog, setOpenSaveDiagnosisDialog] = useState(false);
+  const [specializations, setSpecializations] = useState([]);
+  const [selectedSpecializationId, setSelectedSpecializationId] = useState("");
+  const [isSavingDiagnosis, setIsSavingDiagnosis] = useState(false);
+
+  // ==========================================
   // ADVANCED FILTER STATES
   // ==========================================
   const [showFilters, setShowFilters] = useState(false);
@@ -168,6 +178,75 @@ const MedicalClaimsReview = () => {
   useEffect(() => {
     fetchClaims();
   }, [fetchClaims]);
+
+  // Fetch specializations for diagnosis saving
+  const fetchSpecializations = useCallback(async () => {
+    try {
+      const res = await api.get("/api/doctor-specializations/list");
+      setSpecializations(res || []);
+    } catch (err) {
+      logger.error("Failed to load specializations:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSpecializations();
+  }, [fetchSpecializations]);
+
+  // Save custom diagnosis to specialization
+  const saveDiagnosisToSystem = useCallback(async () => {
+    if (!selectedSpecializationId || !editedDiagnosis.trim()) {
+      setSnackbar({
+        open: true,
+        message: t("selectSpecializationAndDiagnosis", language) || "Please select a specialization and enter a diagnosis",
+        severity: "warning",
+      });
+      return;
+    }
+
+    setIsSavingDiagnosis(true);
+    try {
+      const res = await api.post(`/api/doctor-specializations/${selectedSpecializationId}/diagnoses`, {
+        diagnosis: editedDiagnosis.trim(),
+      });
+
+      if (res.alreadyExists) {
+        setSnackbar({
+          open: true,
+          message: t("diagnosisAlreadyExists", language) || "This diagnosis already exists in the specialization",
+          severity: "info",
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: t("diagnosisSavedSuccessfully", language) || "Diagnosis saved to specialization successfully",
+          severity: "success",
+        });
+        // Refresh specializations list
+        fetchSpecializations();
+      }
+      setOpenSaveDiagnosisDialog(false);
+      setSelectedSpecializationId("");
+    } catch (err) {
+      logger.error("Failed to save diagnosis:", err);
+      setSnackbar({
+        open: true,
+        message: t("failedToSaveDiagnosis", language) || "Failed to save diagnosis",
+        severity: "error",
+      });
+    } finally {
+      setIsSavingDiagnosis(false);
+    }
+  }, [selectedSpecializationId, editedDiagnosis, language, fetchSpecializations]);
+
+  // Check if diagnosis is custom (not in any specialization)
+  const isCustomDiagnosis = useCallback((diagnosis) => {
+    if (!diagnosis || !specializations.length) return false;
+    const normalizedDiagnosis = diagnosis.toLowerCase().trim();
+    return !specializations.some(spec =>
+      spec.diagnoses?.some(d => d.toLowerCase().trim() === normalizedDiagnosis)
+    );
+  }, [specializations]);
 
   // Check if claim is returned by coordinator
   const isReturnedByCoordinator = useCallback((claim) => {
@@ -934,7 +1013,76 @@ const MedicalClaimsReview = () => {
                   </Typography>
                   <Grid container spacing={2}>
                     <Grid size={{ xs: 12, md: 6 }}>
-                      <Typography><b>Diagnosis:</b> {selectedClaim.diagnosis || "N/A"}</Typography>
+                      <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, flexDirection: "column" }}>
+                        <Typography fontWeight="bold">Diagnosis:</Typography>
+                        {isEditingDiagnosis ? (
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
+                            <TextField
+                              size="small"
+                              fullWidth
+                              value={editedDiagnosis}
+                              onChange={(e) => setEditedDiagnosis(e.target.value)}
+                              placeholder="Enter diagnosis..."
+                            />
+                            <Button
+                              size="small"
+                              variant="contained"
+                              onClick={() => {
+                                setIsEditingDiagnosis(false);
+                                // Update the claim's diagnosis
+                                if (selectedClaim) {
+                                  setSelectedClaim({ ...selectedClaim, diagnosis: editedDiagnosis });
+                                }
+                              }}
+                              sx={{ minWidth: "auto", px: 2 }}
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              size="small"
+                              onClick={() => {
+                                setIsEditingDiagnosis(false);
+                                setEditedDiagnosis(selectedClaim?.diagnosis || "");
+                              }}
+                              sx={{ minWidth: "auto", px: 2 }}
+                            >
+                              Cancel
+                            </Button>
+                          </Box>
+                        ) : (
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                            <Typography>{selectedClaim.diagnosis || "N/A"}</Typography>
+                            <Tooltip title="Edit Diagnosis">
+                              <IconButton
+                                size="small"
+                                onClick={() => {
+                                  setEditedDiagnosis(selectedClaim.diagnosis || "");
+                                  setIsEditingDiagnosis(true);
+                                }}
+                              >
+                                <AssignmentIcon fontSize="small" sx={{ color: "#556B2F" }} />
+                              </IconButton>
+                            </Tooltip>
+                            {selectedClaim.diagnosis && isCustomDiagnosis(selectedClaim.diagnosis) && (
+                              <Chip
+                                size="small"
+                                label="Custom"
+                                color="warning"
+                                onClick={() => {
+                                  setEditedDiagnosis(selectedClaim.diagnosis);
+                                  // Pre-select provider's specialization if available
+                                  if (selectedClaim.providerSpecialization) {
+                                    const spec = specializations.find(s => s.displayName === selectedClaim.providerSpecialization);
+                                    if (spec) setSelectedSpecializationId(spec.id);
+                                  }
+                                  setOpenSaveDiagnosisDialog(true);
+                                }}
+                                sx={{ cursor: "pointer" }}
+                              />
+                            )}
+                          </Box>
+                        )}
+                      </Box>
                     </Grid>
                     <Grid size={{ xs: 12, md: 6 }}>
                       <Typography><b>Treatment:</b> {selectedClaim.treatmentDetails || "N/A"}</Typography>
@@ -1110,6 +1258,88 @@ const MedicalClaimsReview = () => {
           </Button>
           <Button color="error" onClick={handleConfirmReject} disabled={isSubmitting}>
             {isSubmitting ? <CircularProgress size={20} /> : t("reject", language)}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* SAVE DIAGNOSIS TO SYSTEM DIALOG */}
+      <Dialog
+        open={openSaveDiagnosisDialog}
+        onClose={() => setOpenSaveDiagnosisDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: "#f0f9ff", color: "#0284c7", fontWeight: 600 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <LocalHospitalIcon />
+            <span>{t("saveDiagnosisToSystem", language) || "Save Diagnosis to System"}</span>
+          </Stack>
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            {t("saveDiagnosisHint", language) || "This custom diagnosis will be added to the selected specialization and will be available for doctors to use in future visits."}
+          </Typography>
+
+          <TextField
+            fullWidth
+            label={t("diagnosisName", language) || "Diagnosis Name"}
+            value={editedDiagnosis}
+            onChange={(e) => setEditedDiagnosis(e.target.value)}
+            sx={{ mb: 2 }}
+          />
+
+          <FormControl fullWidth>
+            <InputLabel>{t("selectSpecialization", language) || "Select Specialization"}</InputLabel>
+            <Select
+              value={selectedSpecializationId}
+              onChange={(e) => setSelectedSpecializationId(e.target.value)}
+              label={t("selectSpecialization", language) || "Select Specialization"}
+            >
+              {specializations.map((spec) => (
+                <MenuItem key={spec.id} value={spec.id}>
+                  {spec.displayName}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {selectedSpecializationId && (
+            <Box sx={{ mt: 2, p: 2, bgcolor: "#f5f5f5", borderRadius: 1 }}>
+              <Typography variant="caption" color="text.secondary">
+                {t("currentDiagnosesInSpecialization", language) || "Current diagnoses in this specialization:"}
+              </Typography>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 1 }}>
+                {specializations
+                  .find((s) => s.id === selectedSpecializationId)
+                  ?.diagnoses?.slice(0, 10)
+                  .map((d, idx) => (
+                    <Chip key={idx} label={d} size="small" variant="outlined" />
+                  ))}
+                {specializations.find((s) => s.id === selectedSpecializationId)?.diagnoses?.length > 10 && (
+                  <Chip label={`+${specializations.find((s) => s.id === selectedSpecializationId).diagnoses.length - 10} more`} size="small" />
+                )}
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => {
+              setOpenSaveDiagnosisDialog(false);
+              setSelectedSpecializationId("");
+            }}
+            disabled={isSavingDiagnosis}
+            sx={{ color: "#64748b" }}
+          >
+            {t("cancel", language)}
+          </Button>
+          <Button
+            onClick={saveDiagnosisToSystem}
+            variant="contained"
+            disabled={isSavingDiagnosis || !selectedSpecializationId || !editedDiagnosis.trim()}
+            sx={{ bgcolor: "#0284c7", "&:hover": { bgcolor: "#0369a1" } }}
+          >
+            {isSavingDiagnosis ? <CircularProgress size={20} color="inherit" /> : (t("saveToSystem", language) || "Save to System")}
           </Button>
         </DialogActions>
       </Dialog>

@@ -45,23 +45,33 @@ export const useSubmissions = (showSuccess, showError) => {
       // Create prescriptions
       if (selectedMedicines.length > 0) {
         const items = selectedMedicines.map((m) => {
+          const isCustomMedicine = m.medicine?.isCustom === true || String(m.medicineId).startsWith("custom-");
+
           if (m.noDosage) {
             return {
-              medicineId: m.medicineId,
+              medicineId: isCustomMedicine ? null : m.medicineId,
               dosage: null,
               timesPerDay: null,
               duration: m.duration ? parseInt(m.duration) : null,
               noDosage: true,
               form: m.form || m.medicine?.form || null,
+              // Custom medicine fields
+              isCustom: isCustomMedicine,
+              customMedicineName: isCustomMedicine ? (m.medicine?.name || "") : null,
+              customScientificName: isCustomMedicine ? (m.medicine?.scientificName || "") : null,
             };
           }
           return {
-            medicineId: m.medicineId,
+            medicineId: isCustomMedicine ? null : m.medicineId,
             dosage: m.dosage ? parseInt(m.dosage) : null,
             timesPerDay: m.timesPerDay ? parseInt(m.timesPerDay) : null,
             duration: m.duration ? parseInt(m.duration) : null,
             noDosage: false,
             form: m.form || m.medicine?.form || null,
+            // Custom medicine fields
+            isCustom: isCustomMedicine,
+            customMedicineName: isCustomMedicine ? (m.medicine?.name || "") : null,
+            customScientificName: isCustomMedicine ? (m.medicine?.scientificName || "") : null,
           };
         });
 
@@ -99,6 +109,9 @@ export const useSubmissions = (showSuccess, showError) => {
       // Create lab requests
       if (selectedLabTests.length > 0) {
         selectedLabTests.forEach((lab) => {
+          const isCustomLabTest = lab.test?.isCustom === true || String(lab.testId).startsWith("custom-");
+          const testName = lab.test?.serviceName || lab.test?.name || "";
+
           const labNotes = noDiagnosisTreatment
             ? selectedFamilyMember
               ? `No diagnosis/treatment required\nFamily Member: ${selectedFamilyMember.fullName} (${selectedFamilyMember.relation}) - Insurance: ${selectedFamilyMember.insuranceNumber}`
@@ -109,21 +122,27 @@ export const useSubmissions = (showSuccess, showError) => {
 
           const labData = selectedFamilyMember
             ? {
-                testId: lab.testId,
-                testName: lab.test.serviceName,
+                testId: isCustomLabTest ? null : lab.testId,
+                testName: testName,
                 memberName: selectedFamilyMember.fullName,
                 memberId: selectedFamilyMember.id,
                 notes: labNotes,
                 diagnosis: noDiagnosisTreatment ? "" : patientForm.diagnosis,
                 treatment: noDiagnosisTreatment ? "" : patientForm.treatment,
+                // Custom lab test fields
+                isCustom: isCustomLabTest,
+                customTestName: isCustomLabTest ? testName : null,
               }
             : {
-                testId: lab.testId,
-                testName: lab.test.serviceName,
+                testId: isCustomLabTest ? null : lab.testId,
+                testName: testName,
                 memberName: patientForm.memberName,
                 notes: labNotes,
                 diagnosis: noDiagnosisTreatment ? "" : patientForm.diagnosis,
                 treatment: noDiagnosisTreatment ? "" : patientForm.treatment,
+                // Custom lab test fields
+                isCustom: isCustomLabTest,
+                customTestName: isCustomLabTest ? testName : null,
               };
 
           promises.push(
@@ -135,6 +154,9 @@ export const useSubmissions = (showSuccess, showError) => {
       // Create radiology requests
       if (selectedRadiologyTests.length > 0) {
         selectedRadiologyTests.forEach((rad) => {
+          const isCustomRadiologyTest = rad.test?.isCustom === true || String(rad.testId).startsWith("custom-");
+          const testName = rad.test?.serviceName || rad.test?.name || "";
+
           const radiologyNotes = noDiagnosisTreatment
             ? selectedFamilyMember
               ? `No diagnosis/treatment required\nFamily Member: ${selectedFamilyMember.fullName} (${selectedFamilyMember.relation}) - Insurance: ${selectedFamilyMember.insuranceNumber}`
@@ -145,18 +167,26 @@ export const useSubmissions = (showSuccess, showError) => {
 
           const radiologyData = selectedFamilyMember
             ? {
-                testId: rad.testId,
+                testId: isCustomRadiologyTest ? null : rad.testId,
+                testName: testName,
                 memberId: selectedFamilyMember.id,
                 notes: radiologyNotes,
                 diagnosis: noDiagnosisTreatment ? "" : patientForm.diagnosis,
                 treatment: noDiagnosisTreatment ? "" : patientForm.treatment,
+                // Custom radiology test fields
+                isCustom: isCustomRadiologyTest,
+                customTestName: isCustomRadiologyTest ? testName : null,
               }
             : {
-                testId: rad.testId,
+                testId: isCustomRadiologyTest ? null : rad.testId,
+                testName: testName,
                 memberId: patientForm.memberId,
                 notes: radiologyNotes,
                 diagnosis: noDiagnosisTreatment ? "" : patientForm.diagnosis,
                 treatment: noDiagnosisTreatment ? "" : patientForm.treatment,
+                // Custom radiology test fields
+                isCustom: isCustomRadiologyTest,
+                customTestName: isCustomRadiologyTest ? testName : null,
               };
 
           promises.push(

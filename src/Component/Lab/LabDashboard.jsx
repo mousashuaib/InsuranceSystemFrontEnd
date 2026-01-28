@@ -14,9 +14,9 @@ import LabProfile from "../Profile/LabProfile";
 import NotificationsList from "../Notification/NotificationsList";
 import LogoutDialog from "../Auth/LogoutDialog";
 import AddSearchProfileLabWorker from "./AddSearchProfileLabWorker";
-import LabProfiles from "./LabProfile";
 import HealthcareProviderMyClaims from "../Shared/HealthcareProviderMyClaims";
 import ConsultationPrices from "../Shared/ConsultationPrices";
+import FinancialReport from "../Doctor/FinancialReport";
 
 import {
   Box,
@@ -882,10 +882,10 @@ const LabDashboard = () => {
         {activeView === "notifications" && (
           <NotificationsList refresh={refreshUnreadCount} />
         )}
-        {activeView === "labProfiles" && <LabProfiles />}
         {activeView === "my-claims" && (
           <HealthcareProviderMyClaims key={claimsRefreshKey} userRole={ROLES.LAB_TECH} />
         )}
+        {activeView === "financial-report" && <FinancialReport />}
         {activeView === "consultation-prices" && <ConsultationPrices />}
 
         {activeView === "profile" && (

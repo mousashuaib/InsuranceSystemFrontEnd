@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   Paper,
@@ -9,10 +9,20 @@ import {
   IconButton,
   Chip,
   Autocomplete,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  MenuItem,
+  createFilterOptions,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
 import { useLanguage } from "../../../context/LanguageContext";
 import { t } from "../../../config/translations";
+
+const filter = createFilterOptions();
 
 const MedicineList = ({
   selectedMedicines,
@@ -27,6 +37,45 @@ const MedicineList = ({
   onUpdateMedicine,
 }) => {
   const { language, isRTL } = useLanguage();
+
+  // State for custom medicine dialog
+  const [addMedicineDialogOpen, setAddMedicineDialogOpen] = useState(false);
+  const [newMedicineName, setNewMedicineName] = useState("");
+  const [newMedicineScientificName, setNewMedicineScientificName] = useState("");
+  const [newMedicineForm, setNewMedicineForm] = useState("");
+
+  // Available medicine forms
+  const medicineFormOptions = [
+    { value: "Tablet", label: language === "ar" ? "حبوب" : "Tablet" },
+    { value: "Syrup", label: language === "ar" ? "شراب" : "Syrup" },
+    { value: "Cream", label: language === "ar" ? "كريم" : "Cream" },
+    { value: "Drops", label: language === "ar" ? "قطرة" : "Drops" },
+    { value: "Injection", label: language === "ar" ? "حقن" : "Injection" },
+  ];
+
+  // Handle adding custom medicine
+  const handleAddCustomMedicine = () => {
+    if (newMedicineName.trim()) {
+      const customMedicine = {
+        id: `custom-${Date.now()}`,
+        name: newMedicineName.trim(),
+        scientificName: newMedicineScientificName.trim() || "",
+        form: newMedicineForm || "Tablet",
+        quantity: 0,
+        unionPrice: 0,
+        coverageStatus: "NOT_COVERED",
+        coveragePercentage: 0,
+        isCustom: true,
+        fullItem: null,
+      };
+
+      onAddMedicine(customMedicine);
+      setAddMedicineDialogOpen(false);
+      setNewMedicineName("");
+      setNewMedicineScientificName("");
+      setNewMedicineForm("");
+    }
+  };
 
   // Helper functions
   const detectFormFromName = (medicineName) => {
@@ -158,32 +207,83 @@ const MedicineList = ({
           )}
         </Typography>
         <Autocomplete
+          freeSolo
           value={selectedMedicineValue}
           inputValue={selectedMedicineInput}
           options={availableMedicines}
-          getOptionLabel={(option) => `${option.name}${option.scientificName ? ` - ${option.scientificName}` : ''}`}
-          onChange={(event, newValue) => {
-            if (newValue) {
-              onAddMedicine(newValue);
+          getOptionLabel={(option) => {
+            // Handle "Add new" option
+            if (typeof option === 'object' && option.inputValue) {
+              return option.title;
             }
-            setSelectedMedicineValue(null);
-            setSelectedMedicineInput("");
+            return `${option.name || ''}${option.scientificName ? ` - ${option.scientificName}` : ''}`;
+          }}
+          onChange={(event, newValue) => {
+            // Handle custom medicine creation
+            if (newValue && typeof newValue === 'object' && newValue.inputValue) {
+              setNewMedicineName(newValue.inputValue);
+              setAddMedicineDialogOpen(true);
+              setSelectedMedicineValue(null);
+              setSelectedMedicineInput("");
+            } else if (newValue && typeof newValue === 'object' && newValue.name) {
+              onAddMedicine(newValue);
+              setSelectedMedicineValue(null);
+              setSelectedMedicineInput("");
+            } else if (typeof newValue === 'string' && newValue.trim()) {
+              // User pressed enter with custom text
+              setNewMedicineName(newValue.trim());
+              setAddMedicineDialogOpen(true);
+              setSelectedMedicineValue(null);
+              setSelectedMedicineInput("");
+            }
           }}
           onInputChange={(event, newInputValue) => {
             setSelectedMedicineInput(newInputValue);
+          }}
+          filterOptions={(options, params) => {
+            const filtered = filter(options, params);
+            const { inputValue } = params;
+
+            // Check if input matches an existing option
+            const isExisting = options.some(
+              (option) => inputValue.toLowerCase() === (option.name || "").toLowerCase()
+            );
+
+            // Add "Add new" option if input doesn't match
+            if (inputValue !== '' && !isExisting) {
+              filtered.push({
+                inputValue,
+                title: language === "ar" ? `إضافة "${inputValue}"` : `Add "${inputValue}"`,
+              });
+            }
+            return filtered;
           }}
           disabled={hasSameSpecializationRestriction}
           renderInput={(params) => (
             <TextField
               {...params}
               label={t("selectMedicine", language)}
-              placeholder={availableMedicines.length === 0 ? t("noMedicinesAvailable", language) : t("searchSelectMedicine", language)}
+              placeholder={language === "ar" ? "ابحث أو أضف دواء جديد..." : "Search or add new medicine..."}
               variant="outlined"
-              disabled={availableMedicines.length === 0 || hasSameSpecializationRestriction}
+              disabled={hasSameSpecializationRestriction}
             />
           )}
           renderOption={(props, option) => {
             const { key, ...restProps } = props;
+
+            // Handle "Add new" option
+            if (typeof option === 'object' && option.inputValue) {
+              return (
+                <Box component="li" key={key} {...restProps}>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <AddIcon sx={{ color: "#0284c7" }} />
+                    <Typography sx={{ color: "#0284c7", fontWeight: 600 }}>
+                      {option.title}
+                    </Typography>
+                  </Stack>
+                </Box>
+              );
+            }
 
             // Get coverage status info
             const coverageStatus = option.coverageStatus || "COVERED";
@@ -454,6 +554,81 @@ const MedicineList = ({
           </Stack>
         </Box>
       )}
+
+      {/* Custom Medicine Dialog */}
+      <Dialog
+        open={addMedicineDialogOpen}
+        onClose={() => setAddMedicineDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: "#f0f9ff", color: "#0284c7" }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <AddIcon />
+            <span>{language === "ar" ? "إضافة دواء جديد" : "Add New Medicine"}</span>
+          </Stack>
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            {language === "ar"
+              ? "أدخل تفاصيل الدواء. سيتم تصنيفه كـ 'غير مغطى' بشكل افتراضي."
+              : "Enter medicine details. It will be marked as 'Not Covered' by default."}
+          </Typography>
+          <Stack spacing={2}>
+            <TextField
+              autoFocus
+              fullWidth
+              label={language === "ar" ? "اسم الدواء" : "Medicine Name"}
+              value={newMedicineName}
+              onChange={(e) => setNewMedicineName(e.target.value)}
+              required
+            />
+            <TextField
+              fullWidth
+              label={language === "ar" ? "الاسم العلمي (اختياري)" : "Scientific Name (Optional)"}
+              value={newMedicineScientificName}
+              onChange={(e) => setNewMedicineScientificName(e.target.value)}
+            />
+            <TextField
+              select
+              fullWidth
+              label={language === "ar" ? "الشكل الدوائي" : "Medicine Form"}
+              value={newMedicineForm}
+              onChange={(e) => setNewMedicineForm(e.target.value)}
+              required
+            >
+              {medicineFormOptions.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => {
+              setAddMedicineDialogOpen(false);
+              setNewMedicineName("");
+              setNewMedicineScientificName("");
+              setNewMedicineForm("");
+            }}
+          >
+            {language === "ar" ? "إلغاء" : "Cancel"}
+          </Button>
+          <Button
+            onClick={handleAddCustomMedicine}
+            variant="contained"
+            disabled={!newMedicineName.trim() || !newMedicineForm}
+            sx={{
+              bgcolor: "#0284c7",
+              "&:hover": { bgcolor: "#0369a1" },
+            }}
+          >
+            {language === "ar" ? "إضافة" : "Add"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 };

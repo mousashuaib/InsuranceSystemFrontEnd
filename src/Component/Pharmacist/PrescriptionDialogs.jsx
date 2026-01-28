@@ -15,6 +15,8 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import { useLanguage } from "../../context/LanguageContext";
 import { t } from "../../config/translations";
@@ -29,6 +31,7 @@ const PrescriptionDialogs = memo(({
   onVerifyClose,
   onVerifySubmit,
   onPriceChange,
+  onFulfilledChange,
   onDocumentClose,
   onDocumentChange,
   onDocumentSubmit,
@@ -50,23 +53,56 @@ const PrescriptionDialogs = memo(({
         </DialogTitle>
         <DialogContent sx={{ mt: 2 }}>
           <Typography variant="body2" color="text.secondary" mb={2}>
-            Enter the price for the specified quantity for each medicine (number of packages for liquids/creams, or number of pills/injections).
+            Check the medicines you will dispense and enter the price for each.
+            <br />
+            <strong>Partial fulfillment:</strong> You can dispense only some medicines if others are unavailable.
             <br />
             The price will be automatically compared with the union price and the lower amount will be used.
           </Typography>
 
           <Stack spacing={2}>
             {verifyDialog.prices.map((item) => (
-              <Paper key={item.id} elevation={2} sx={{ p: 2.5, borderRadius: 2, bgcolor: "#FAF8F5" }}>
-                <Typography variant="subtitle2" fontWeight={600} gutterBottom color="primary">
-                  {item.medicineName}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" display="block" mb={1.5}>
+              <Paper
+                key={item.id}
+                elevation={2}
+                sx={{
+                  p: 2.5,
+                  borderRadius: 2,
+                  bgcolor: item.fulfilled ? "#FAF8F5" : "#f5f5f5",
+                  opacity: item.fulfilled ? 1 : 0.7,
+                  border: item.fulfilled ? "2px solid #556B2F" : "1px solid #e0e0e0",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                {/* Fulfilled Checkbox */}
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={item.fulfilled !== false}
+                      onChange={(e) => onFulfilledChange && onFulfilledChange(item.id, e.target.checked)}
+                      sx={{
+                        color: "#556B2F",
+                        "&.Mui-checked": {
+                          color: "#556B2F",
+                        },
+                      }}
+                    />
+                  }
+                  label={
+                    <Typography variant="subtitle2" fontWeight={600} color={item.fulfilled !== false ? "primary" : "text.secondary"}>
+                      {item.medicineName}
+                    </Typography>
+                  }
+                />
+                <Typography variant="caption" color="text.secondary" display="block" mb={1.5} sx={{ ml: 4 }}>
                   {item.scientificName}
                 </Typography>
 
+                {/* Show details only if fulfilled */}
+                {item.fulfilled !== false && (
+                <>
                 {/* Display Prescription Information */}
-                <Box sx={{ mb: 2, p: 1.5, bgcolor: "#FAF8F5", borderRadius: 1, border: "1px solid #7B8B5E" }}>
+                <Box sx={{ mb: 2, p: 1.5, bgcolor: "#FAF8F5", borderRadius: 1, border: "1px solid #7B8B5E", ml: 4 }}>
                   <Typography variant="subtitle2" fontWeight={600} color="#556B2F" gutterBottom>
                     📋 Prescription Information
                   </Typography>
@@ -121,7 +157,7 @@ const PrescriptionDialogs = memo(({
                 </Box>
 
                 {/* Price Input */}
-                <Box sx={{ mt: 2 }}>
+                <Box sx={{ mt: 2, ml: 4 }}>
                   <TextField
                     label={`Price (₪)`}
                     type="number"
@@ -135,7 +171,7 @@ const PrescriptionDialogs = memo(({
                         const unit = getQuantityUnit(item.form, item.medicineName);
                         const formUpper = item.form ? item.form.toUpperCase() : "";
                         const isLiquidOrCream = formUpper === "SYRUP" || formUpper === "DROPS" || formUpper === "CREAM" || formUpper === "OINTMENT";
-                        
+
                         if (item.calculatedQuantity === 1) {
                           if (isLiquidOrCream) {
                             return `Enter price for 1 ${unit.en}`;
@@ -165,6 +201,15 @@ const PrescriptionDialogs = memo(({
                     }}
                   />
                 </Box>
+                </>
+                )}
+
+                {/* Not fulfilled message */}
+                {item.fulfilled === false && (
+                  <Typography variant="body2" color="text.secondary" sx={{ ml: 4, fontStyle: "italic" }}>
+                    ❌ Not dispensing this medicine
+                  </Typography>
+                )}
               </Paper>
             ))}
           </Stack>
@@ -413,6 +458,7 @@ PrescriptionDialogs.propTypes = {
   onVerifyClose: PropTypes.func.isRequired,
   onVerifySubmit: PropTypes.func.isRequired,
   onPriceChange: PropTypes.func.isRequired,
+  onFulfilledChange: PropTypes.func,
   onDocumentClose: PropTypes.func.isRequired,
   onDocumentChange: PropTypes.func.isRequired,
   onDocumentSubmit: PropTypes.func.isRequired,

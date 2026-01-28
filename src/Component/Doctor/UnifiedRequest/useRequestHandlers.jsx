@@ -331,6 +331,32 @@ export const useRequestSubmitHandler = ({
         // Get consultation price from specialization
         const consultationPrice = selectedSpecializationData?.consultationPrice || 0;
 
+        // Build roleSpecificData with medicines, lab tests, and radiology tests
+        const roleSpecificData = {
+          notes: "Auto-submitted claim from doctor visit",
+          specialization: selectedSpecializationData?.displayName || 'General',
+          // Include medicines with details
+          medicines: validMedicines.map((m) => ({
+            name: m.medicine?.serviceName || m.medicine?.name || "Unknown",
+            form: m.form || m.medicine?.form || "",
+            dosage: m.dosage || null,
+            timesPerDay: m.timesPerDay || null,
+            duration: m.duration || null,
+            noDosage: m.noDosage || false,
+            price: m.medicine?.basePrice || m.medicine?.price || 0,
+          })),
+          // Include lab tests with details
+          labTests: validLabTests.map((lab) => ({
+            name: lab.test?.serviceName || lab.test?.name || "Unknown",
+            price: lab.test?.basePrice || lab.test?.price || 0,
+          })),
+          // Include radiology tests with details
+          radiologyTests: validRadiologyTests.map((rad) => ({
+            name: rad.test?.serviceName || rad.test?.name || "Unknown",
+            price: rad.test?.basePrice || rad.test?.price || 0,
+          })),
+        };
+
         // Create claim data
         const claimData = {
           clientId: clientId,
@@ -339,6 +365,7 @@ export const useRequestSubmitHandler = ({
           serviceDate: new Date().toISOString().split("T")[0],
           diagnosis: noDiagnosisTreatment ? "" : patientForm.diagnosis,
           treatmentDetails: noDiagnosisTreatment ? "" : patientForm.treatment,
+          roleSpecificData: JSON.stringify(roleSpecificData),
         };
 
         // Create FormData for multipart/form-data request

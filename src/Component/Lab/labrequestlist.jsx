@@ -11,12 +11,19 @@ import {
   InputAdornment,
   Grid,
   Avatar,
+  FormControl,
+  Select,
+  MenuItem,
+  Chip,
+  Button,
 } from "@mui/material";
 import ScienceIcon from "@mui/icons-material/Science";
 import SearchIcon from "@mui/icons-material/Search";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import DescriptionIcon from "@mui/icons-material/Description";
+import FamilyRestroomIcon from "@mui/icons-material/FamilyRestroom";
+import PersonIcon from "@mui/icons-material/Person";
 import { api, getToken } from "../../utils/apiService";
 import { API_ENDPOINTS } from "../../config/api";
 import LabRequestCard from "./LabRequestCard";
@@ -47,6 +54,9 @@ const LabRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClaim, onU
   const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [enteredPrice, setEnteredPrice] = useState("");
+
+  // Family member filter state
+  const [familyMemberFilter, setFamilyMemberFilter] = useState("all"); // "all", "main", or family member name
   
   // ✅ استخدام useRef لحفظ claimData بشكل موثوق (لا يتأثر بـ re-renders)
   const claimDataRef = useRef(null);
@@ -659,12 +669,12 @@ const LabRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClaim, onU
     }
   };
 
-  // ✅ Sorting and filtering - Show all statuses (PENDING, COMPLETED, REJECTED, IN_PROGRESS)
+  // ✅ Sorting and filtering - Only show PENDING requests
   const activeRequests = requests.filter(
     (r) => {
       const status = r.status?.toLowerCase();
-      // Show all statuses for visibility
-      return status === "pending" || status === "completed" || status === "rejected" || status === "in_progress";
+      // Only show PENDING requests on this page
+      return status === "pending";
     }
   );
 
@@ -680,27 +690,63 @@ const LabRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClaim, onU
     }
   );
 
-  const filteredRequests = sortedRequests.filter(
+  // First filter by search term
+  const searchFilteredRequests = sortedRequests.filter(
     (r) => {
       // Filter by search term: full name, employee ID, and insurance number
       if (!searchTerm.trim()) return true;
-      
+
       const searchLower = searchTerm.toLowerCase();
-      
+
       // Search by patient name (main client)
       const matchesName = r.memberName?.toLowerCase().includes(searchLower);
-      
+
       // Search by Employee ID (main client)
       const matchesEmployeeId = r.employeeId?.toLowerCase().includes(searchLower);
-      
+
       // Search by family member info if exists
       const familyMemberInfo = getFamilyMemberInfo(r);
       const matchesFamilyMemberName = familyMemberInfo?.name?.toLowerCase().includes(searchLower);
       const matchesFamilyMemberInsuranceNumber = familyMemberInfo?.insuranceNumber?.toLowerCase().includes(searchLower);
-      
+
       return matchesName || matchesEmployeeId || matchesFamilyMemberName || matchesFamilyMemberInsuranceNumber;
     }
   );
+
+  // Extract unique family members from filtered requests
+  const getUniqueFamilyMembers = () => {
+    const mainClientName = searchFilteredRequests.length > 0 ? searchFilteredRequests[0].memberName : null;
+    const familyMembers = new Map();
+
+    searchFilteredRequests.forEach(r => {
+      const familyInfo = getFamilyMemberInfo(r);
+      if (familyInfo && familyInfo.name) {
+        // Add family member with their relation
+        familyMembers.set(familyInfo.name, familyInfo.relation || "Family");
+      }
+    });
+
+    return { mainClientName, familyMembers: Array.from(familyMembers.entries()) };
+  };
+
+  const { mainClientName, familyMembers } = getUniqueFamilyMembers();
+  const hasFamilyMembers = familyMembers.length > 0 && searchTerm.trim();
+
+  // Apply family member filter
+  const filteredRequests = searchFilteredRequests.filter((r) => {
+    if (familyMemberFilter === "all") return true;
+
+    const familyInfo = getFamilyMemberInfo(r);
+    const isFamilyMemberRequest = familyInfo !== null;
+
+    if (familyMemberFilter === "main") {
+      // Show only main client requests (not family members)
+      return !isFamilyMemberRequest;
+    } else {
+      // Show only specific family member requests
+      return isFamilyMemberRequest && familyInfo?.name === familyMemberFilter;
+    }
+  });
 
   if (requests.length === 0) {
     return (
@@ -815,6 +861,60 @@ const LabRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClaim, onU
           </CardContent>
         </Card>
 
+        {/* Family Member Filter - Only show if there are family members in the results */}
+        {hasFamilyMembers && (
+          <Card elevation={0} sx={{ borderRadius: 4, border: "1px solid #E8EDE0", mb: 4, bgcolor: "#fef3c7" }}>
+            <CardContent sx={{ p: 2.5 }}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }}>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <FamilyRestroomIcon sx={{ color: "#92400e" }} />
+                  <Typography variant="subtitle2" fontWeight={700} color="#92400e">
+                    {language === "ar" ? "تصفية حسب أفراد العائلة:" : "Filter by Family Member:"}
+                  </Typography>
+                </Stack>
+                <FormControl size="small" sx={{ minWidth: 200, bgcolor: "white", borderRadius: 1 }}>
+                  <Select
+                    value={familyMemberFilter}
+                    onChange={(e) => setFamilyMemberFilter(e.target.value)}
+                    displayEmpty
+                    sx={{ borderRadius: 1 }}
+                  >
+                    <MenuItem value="all">
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <span>{language === "ar" ? "🔍 الكل" : "🔍 All"}</span>
+                      </Stack>
+                    </MenuItem>
+                    <MenuItem value="main">
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <PersonIcon sx={{ fontSize: 18, color: "#556B2F" }} />
+                        <span>{mainClientName || (language === "ar" ? "العميل الرئيسي" : "Main Client")}</span>
+                      </Stack>
+                    </MenuItem>
+                    {familyMembers.map(([name, relation]) => (
+                      <MenuItem key={name} value={name}>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <FamilyRestroomIcon sx={{ fontSize: 18, color: "#92400e" }} />
+                          <span>{name}</span>
+                          <Chip label={relation} size="small" sx={{ height: 18, fontSize: "0.65rem", bgcolor: "#fde68a" }} />
+                        </Stack>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                {familyMemberFilter !== "all" && (
+                  <Button
+                    size="small"
+                    onClick={() => setFamilyMemberFilter("all")}
+                    sx={{ color: "#92400e", textTransform: "none" }}
+                  >
+                    {language === "ar" ? "إظهار الكل" : "Show All"}
+                  </Button>
+                )}
+              </Stack>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Results Count */}
         <Typography variant="body1" sx={{ mb: 3, color: "text.secondary" }}>
           {filteredRequests.length === 0 && activeRequests.length > 0
@@ -868,12 +968,10 @@ const LabRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClaim, onU
                 status={status}
                 familyMemberInfo={familyMemberInfo}
                 patientEmployeeId={patientEmployeeId}
-                universityCardImage={universityCardImage}
                 displayAge={displayAge}
                 displayGender={displayGender}
                 formatDate={formatDate}
                 onOpenUploadDialog={handleOpenUploadDialog}
-                onImageClick={(imageUrl) => setImageDialog({ open: true, imageUrl })}
               />
             );
           })}

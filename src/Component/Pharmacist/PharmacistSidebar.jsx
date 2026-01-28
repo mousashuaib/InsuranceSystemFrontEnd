@@ -30,6 +30,7 @@ import AddBusinessIcon from "@mui/icons-material/AddBusiness";
 import LocalPharmacyIcon from "@mui/icons-material/LocalPharmacy";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import PaidIcon from "@mui/icons-material/Paid";
+import AssessmentIcon from "@mui/icons-material/Assessment";
 
 import LogoutDialog from "../Auth/LogoutDialog";
 
@@ -210,6 +211,20 @@ const PharmacistSidebar = memo(function PharmacistSidebar({ activeView, setActiv
               <ReceiptIcon sx={{ color: "#FFA500", fontSize: { xs: 26, sm: 22 } }} />
             </ListItemIcon>
             {(open || isDrawer) && <ListItemText primary={t("myClaims", language)} />}
+          </ListItemButton>
+        </Tooltip>
+
+        {/* Financial Report */}
+        <Tooltip title={t("financialReport", language) || "Financial Report"} placement={isRTL ? "left" : "right"} disableHoverListener={open || isDrawer}>
+          <ListItemButton
+            onClick={() => handleNavClick("financial-report")}
+            selected={activeView === "financial-report"}
+            sx={{ "&.Mui-selected": { backgroundColor: "rgba(255,255,255,0.2)" } }}
+          >
+            <ListItemIcon>
+              <AssessmentIcon sx={{ color: "#81C784", fontSize: { xs: 26, sm: 22 } }} />
+            </ListItemIcon>
+            {(open || isDrawer) && <ListItemText primary={t("financialReport", language) || "Financial Report"} />}
           </ListItemButton>
         </Tooltip>
 

@@ -14,9 +14,9 @@ import PharmacistProfile from "../Profile/PharmacistProfile";
 import NotificationsList from "../Notification/NotificationsList";
 import LogoutDialog from "../Auth/LogoutDialog";
 import AddSearchProfilePharmacist from "./AddSearchProfilePharmacist";
-import PharmacistProfiles from "./PharmacistProfiles";
 import HealthcareProviderMyClaims from "../Shared/HealthcareProviderMyClaims";
 import ConsultationPrices from "../Shared/ConsultationPrices";
+import FinancialReport from "../Doctor/FinancialReport";
 
 import {
   Box,
@@ -221,7 +221,8 @@ const PharmacistDashboard = () => {
   const [claimsRefreshTrigger, setClaimsRefreshTrigger] = useState(0);
 
   // ✅ Verify (مع تحديث stats محليًا + إنشاء claim تلقائي)
-  const handleVerify = async (id, itemsWithPrices, prescriptionData) => {
+  // fulfilledItems: only the items that were actually dispensed (partial fulfillment support)
+  const handleVerify = async (id, itemsWithPrices, prescriptionData, fulfilledItems = null) => {
     try {
       // 1️⃣ التحقق من الوصفة والحصول على الوصفة المحدثة مع finalPrice
       const verifyResponse = await api.patch(
@@ -265,10 +266,25 @@ const PharmacistDashboard = () => {
       logger.log("🔍 [VERIFY] Using memberId for claim:", memberIdToUse);
       logger.log("🔍 [VERIFY] Using memberName for claim:", memberNameToUse);
       
+      // Determine which items to include in the claim (partial fulfillment support)
+      const originalItemCount = prescription.items?.length || 0;
+      const fulfilledItemCount = fulfilledItems?.length || originalItemCount;
+      const isPartialFulfillment = fulfilledItems && fulfilledItems.length < originalItemCount;
+
+      // Get the fulfilled item IDs for filtering
+      const fulfilledItemIds = fulfilledItems ? fulfilledItems.map(item => item.id) : null;
+
+      // Filter items to only include fulfilled ones
+      const itemsToInclude = fulfilledItemIds
+        ? (verifiedPrescription.items || prescription.items || []).filter(item => fulfilledItemIds.includes(item.id))
+        : (verifiedPrescription.items || prescription.items || []);
+
       const claimData = {
         clientId: memberIdToUse, // ID المريض من الوصفة (يمكن أن يكون family member ID أو main client ID)
         memberName: memberNameToUse || "", // ✅ إضافة memberName مثل الدكتور
-        description: `Pharmacy verification for prescription - ${prescription.items?.length || 0} items verified`,
+        description: isPartialFulfillment
+          ? `Pharmacy verification for prescription - ${fulfilledItemCount} of ${originalItemCount} items dispensed (partial)`
+          : `Pharmacy verification for prescription - ${fulfilledItemCount} items verified`,
         amount: totalPrice,
         serviceDate: new Date().toISOString().split('T')[0],
         diagnosis: prescription.diagnosis || "", // ⭐ إضافة diagnosis من الوصفة
@@ -279,13 +295,15 @@ const PharmacistDashboard = () => {
           doctorName: prescription.doctorName,
           diagnosis: prescription.diagnosis || "",
           treatment: prescription.treatment || "",
-          isChronic: (verifiedPrescription.isChronic === true || verifiedPrescription.isChronic === "true") 
-                     ? true 
-                     : (prescription.isChronic === true || prescription.isChronic === "true") 
-                       ? true 
+          isChronic: (verifiedPrescription.isChronic === true || verifiedPrescription.isChronic === "true")
+                     ? true
+                     : (prescription.isChronic === true || prescription.isChronic === "true")
+                       ? true
                        : false, // ✅ استخدام isChronic من verifiedPrescription أولاً مع التحقق الصحيح
-          itemsCount: verifiedPrescription.items?.length || prescription.items?.length || 0,
-          items: (verifiedPrescription.items || prescription.items || []).map(item => {
+          isPartialFulfillment: isPartialFulfillment,
+          originalItemCount: originalItemCount,
+          itemsCount: fulfilledItemCount,
+          items: itemsToInclude.map(item => {
             const isChronic = verifiedPrescription.isChronic || prescription.isChronic || false;
             // ✅ للوصفات المزمنة: لا نرسل dosage و timesPerDay
             if (isChronic) {
@@ -308,7 +326,9 @@ const PharmacistDashboard = () => {
               };
             }
           }),
-          notes: `Verified and dispensed by ${user?.fullName || "Pharmacist"}`
+          notes: isPartialFulfillment
+            ? `Partially dispensed (${fulfilledItemCount}/${originalItemCount} items) by ${user?.fullName || "Pharmacist"}`
+            : `Verified and dispensed by ${user?.fullName || "Pharmacist"}`
         })
       };
       
@@ -1029,6 +1049,7 @@ const PharmacistDashboard = () => {
         {activeView === "my-claims" && (
           <HealthcareProviderMyClaims userRole={ROLES.PHARMACIST} refreshTrigger={claimsRefreshTrigger} />
         )}
+        {activeView === "financial-report" && <FinancialReport />}
 
         {activeView === "profile" && (
           <PharmacistProfile userInfo={user} setUser={setUser} />
