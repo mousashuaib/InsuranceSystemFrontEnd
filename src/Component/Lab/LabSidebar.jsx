@@ -26,7 +26,6 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import ScienceIcon from "@mui/icons-material/Science";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-import AddBusinessIcon from "@mui/icons-material/AddBusiness";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import PaidIcon from "@mui/icons-material/Paid";
 import AssessmentIcon from "@mui/icons-material/Assessment";
@@ -239,29 +238,6 @@ const LabSidebar = memo(function LabSidebar({ activeView, setActiveView }) {
             {(open || isDrawer) && <ListItemText primary={t("consultationPrices", language)} />}
           </ListItemButton>
         </Tooltip>
-        <Divider sx={{ my: 1, borderColor: "rgba(255,255,255,0.2)" }} />
-
-        {/* Profiles Section */}
-        {(open || isDrawer) && (
-          <Typography variant="body2" sx={{ ml: 1, mb: 0.7, color: "rgba(255,255,255,0.7)", fontSize: { xs: "0.9rem", sm: "0.8rem" } }}>
-            {t("profiles", language)}
-          </Typography>
-        )}
-
-        {/* Add Profile */}
-        <Tooltip title={t("addProfile", language)} placement={isRTL ? "left" : "right"} disableHoverListener={open || isDrawer}>
-          <ListItemButton
-            onClick={() => handleNavClick("addProfile")}
-            selected={activeView === "addProfile"}
-            sx={{ "&.Mui-selected": { backgroundColor: "rgba(255,255,255,0.2)" } }}
-          >
-            <ListItemIcon>
-              <AddBusinessIcon sx={{ color: "#00E5FF", fontSize: { xs: 26, sm: 22 } }} />
-            </ListItemIcon>
-            {(open || isDrawer) && <ListItemText primary={t("addProfile", language)} />}
-          </ListItemButton>
-        </Tooltip>
-
         <Divider sx={{ my: 1, borderColor: "rgba(255,255,255,0.2)" }} />
 
         {/* Account Section */}

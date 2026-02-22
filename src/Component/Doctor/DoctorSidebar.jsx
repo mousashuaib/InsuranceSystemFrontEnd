@@ -25,7 +25,6 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import ReceiptIcon from "@mui/icons-material/Receipt";
-import PaidIcon from "@mui/icons-material/Paid";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 
 import LogoutDialog from "../Auth/LogoutDialog";
@@ -226,18 +225,6 @@ const DoctorSidebar = memo(function DoctorSidebar({ activeView, setActiveView })
               <AssessmentIcon sx={{ color: "#81C784", fontSize: { xs: 26, sm: 22 } }} />
             </ListItemIcon>
             {(open || isDrawer) && <ListItemText primary={t("financialReport", language) || "Financial Report"} />}
-          </ListItemButton>
-        </Tooltip>
-        <Tooltip title={t("consultationPrices", language)} placement={isRTL ? "left" : "right"} disableHoverListener={open || isDrawer}>
-          <ListItemButton
-            onClick={() => handleNavClick("consultation-prices")}
-            selected={activeView === "consultation-prices"}
-            sx={{ "&.Mui-selected": { backgroundColor: "rgba(255,255,255,0.2)" } }}
-          >
-            <ListItemIcon>
-              <PaidIcon sx={{ color: "#4DB6AC", fontSize: { xs: 26, sm: 22 } }} />
-            </ListItemIcon>
-            {(open || isDrawer) && <ListItemText primary={t("consultationPrices", language)} />}
           </ListItemButton>
         </Tooltip>
         <Divider sx={{ my: 1, borderColor: "rgba(255,255,255,0.2)" }} />

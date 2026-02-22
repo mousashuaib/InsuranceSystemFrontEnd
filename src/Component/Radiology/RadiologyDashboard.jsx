@@ -12,7 +12,6 @@ import RadiologyHeader from "./RadiologyHeader";
 import RadiologyRequestList from "./radiologyrequestlist";
 import NotificationsList from "../Notification/NotificationsList";
 import LogoutDialog from "../Auth/LogoutDialog";
-import AddSearchProfileRadiologist from "./AddSearchProfileRadiologist";
 import RadiologyPersonalProfile from "../Profile/RadiologyProfile";
 import SharedHealthcareProviderFormClaim from "../Shared/SharedHealthcareProviderFormClaim";
 import HealthcareProviderMyClaims from "../Shared/HealthcareProviderMyClaims";
@@ -727,64 +726,6 @@ const RadiologyDashboard = () => {
 
                 <Grid item xs={12} sm={6} md={4}>
                   <Box
-                    onClick={() => setActiveView("addProfile")}
-                    sx={{
-                      p: 3,
-                      borderRadius: 3,
-                      border: "2px solid #E8EBE0",
-                      bgcolor: "#F5F7F0",
-                      cursor: "pointer",
-                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                      position: "relative",
-                      overflow: "hidden",
-                      "&::before": {
-                        content: '""',
-                        position: "absolute",
-                        top: 0,
-                        left: "-100%",
-                        width: "100%",
-                        height: "100%",
-                        background: "linear-gradient(90deg, transparent, rgba(85, 107, 47, 0.1), transparent)",
-                        transition: "left 0.5s ease",
-                      },
-                      "&:hover": {
-                        borderColor: "#556B2F",
-                        bgcolor: "#E8EBE0",
-                        transform: "translateY(-4px)",
-                        boxShadow: "0 8px 24px rgba(85, 107, 47, 0.15)",
-                        "&::before": {
-                          left: "100%",
-                        },
-                      },
-                    }}
-                  >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <Box
-                        sx={{
-                          bgcolor: "#556B2F",
-                          borderRadius: 2,
-                          p: 1.5,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <LocalHospitalIcon sx={{ color: "white", fontSize: 28 }} />
-                      </Box>
-                      <Box>
-                        <Typography variant="subtitle1" fontWeight="bold" sx={{ color: "#2E3B2D", mb: 0.5 }}>
-                          {t("addProfile", language)}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {t("registerYourProfile", language)}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={4}>
-                  <Box
                     onClick={() => setActiveView("my-claims")}
                     sx={{
                       p: 3,
@@ -860,7 +801,6 @@ const RadiologyDashboard = () => {
             }}
           />
         )}
-        {activeView === "addProfile" && <AddSearchProfileRadiologist refresh={fetchData} />}
         {activeView === "notifications" && (
           <NotificationsList refresh={refreshUnreadCount} />
         )}

@@ -7,13 +7,11 @@ import { t } from "../../config/translations";
 import logger from "../../utils/logger";
 
 import NotificationsList from "../Notification/NotificationsList";
-import AddSearchProfileDoctor from "./AddSearchProfile";
 import DoctorCreateCenter from "./DoctorCreateCenter";
 import UnifiedCreateRequest from "./UnifiedCreateRequest";
 import DoctorHeader from "./DoctorHeader";
 
 import HealthcareProviderMyClaims from "../Shared/HealthcareProviderMyClaims";
-import ConsultationPrices from "../Shared/ConsultationPrices";
 import FinancialReport from "./FinancialReport";
 
 import Profile from "../Profile/DoctorProfile";
@@ -33,6 +31,7 @@ import {
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
+import PaidIcon from "@mui/icons-material/Paid";
 
 const DoctorDashboard = () => {
   const theme = useTheme();
@@ -142,6 +141,7 @@ const DoctorDashboard = () => {
     Number(localStorage.getItem("doctorUnreadCount")) || 0
   );
 
+  const [consultationPrice, setConsultationPrice] = useState(null);
   const [openLogout, setOpenLogout] = useState(false);
 
   const [snackbar, setSnackbar] = useState({
@@ -262,6 +262,20 @@ const DoctorDashboard = () => {
     }
   }, []);
 
+  const fetchConsultationPrice = useCallback(async () => {
+    try {
+      const specs = await api.get(API_ENDPOINTS.DOCTOR.SPECIALIZATIONS);
+      if (Array.isArray(specs) && userInfo?.specialization) {
+        const match = specs.find(
+          (s) => s.displayName?.toLowerCase() === userInfo.specialization?.toLowerCase()
+        );
+        if (match) setConsultationPrice(match.consultationPrice);
+      }
+    } catch (err) {
+      logger.error("Error fetching consultation price:", err);
+    }
+  }, [userInfo?.specialization]);
+
   const fetchAll = async () => {
     // Run all API calls in parallel for better performance
     await Promise.all([
@@ -272,6 +286,10 @@ const DoctorDashboard = () => {
       fetchLabCount(),
     ]);
   };
+
+  useEffect(() => {
+    if (userInfo?.specialization) fetchConsultationPrice();
+  }, [userInfo?.specialization, fetchConsultationPrice]);
 
   useEffect(() => {
     const imagePath = getImagePathFromUserData(userInfo);
@@ -413,6 +431,45 @@ const DoctorDashboard = () => {
                 </Box>
               </Box>
             </Paper>
+
+            {/* Consultation Price Card */}
+            {consultationPrice !== null && (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 2, md: 3 },
+                  mb: 4,
+                  borderRadius: 3,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2,
+                  bgcolor: "#fff",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+                  border: "1px solid rgba(0,0,0,0.05)",
+                }}
+              >
+                <Box
+                  sx={{
+                    bgcolor: "#556B2F",
+                    borderRadius: 2,
+                    p: 1.5,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <PaidIcon sx={{ color: "white", fontSize: 28 }} />
+                </Box>
+                <Box>
+                  <Typography variant="body2" sx={{ color: "#5d6b5d" }}>
+                    {t("consultationPrice", language)} — {userInfo?.specialization}
+                  </Typography>
+                  <Typography variant="h5" fontWeight="bold" sx={{ color: "#2E3B2D" }}>
+                    {consultationPrice} ₪
+                  </Typography>
+                </Box>
+              </Paper>
+            )}
 
             <Paper
               elevation={0}
@@ -571,9 +628,6 @@ const DoctorDashboard = () => {
           <Profile userInfo={userInfo} setUser={setUserInfo} refresh={fetchAll} />
         )}
         {activeView === "notifications" && <NotificationsList refresh={fetchUnreadCount} />}
-        {activeView === "doctor-searchprofile-add" && (
-          <AddSearchProfileDoctor refresh={fetchAll} />
-        )}
         {activeView === "create-center" && (
           <DoctorCreateCenter refresh={fetchAll} />
         )}
@@ -584,7 +638,6 @@ const DoctorDashboard = () => {
           <HealthcareProviderMyClaims userRole={ROLES.DOCTOR} />
         )}
         {activeView === "financial-report" && <FinancialReport />}
-        {activeView === "consultation-prices" && <ConsultationPrices />}
       </Box>
 
       <LogoutDialog

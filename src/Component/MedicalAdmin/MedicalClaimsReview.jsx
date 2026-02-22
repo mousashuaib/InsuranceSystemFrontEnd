@@ -68,10 +68,18 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import InfoIcon from "@mui/icons-material/Info";
+import DownloadIcon from "@mui/icons-material/Download";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import ViewListIcon from "@mui/icons-material/ViewList";
+import ViewModuleIcon from "@mui/icons-material/ViewModule";
+import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
+import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+import FirstPageIcon from "@mui/icons-material/FirstPage";
+import LastPageIcon from "@mui/icons-material/LastPage";
 
 // Import utilities
 import api from "../../utils/apiService";
-import { API_ENDPOINTS, CURRENCY } from "../../config/api";
+import { API_ENDPOINTS, CURRENCY, API_BASE_URL } from "../../config/api";
 import { CLAIM_STATUS, isValidTransition } from "../../config/claimStateMachine";
 import { ROLES } from "../../config/roles";
 import { sanitizeString } from "../../utils/sanitize";
@@ -121,6 +129,12 @@ const MedicalClaimsReview = () => {
   const [maxAmount, setMaxAmount] = useState(1000);
   const [showReturnedOnly, setShowReturnedOnly] = useState(false);
   const [showFollowUpOnly, setShowFollowUpOnly] = useState(false);
+
+  // View mode and pagination states
+  const [viewMode, setViewMode] = useState("table"); // "table" or "cards"
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const rowsPerPageOptions = [5, 10, 25, 50, 100];
 
   // Tabs Configuration
   const claimTabs = useMemo(() => [
@@ -263,6 +277,7 @@ const MedicalClaimsReview = () => {
     setAmountRange([0, maxAmount]);
     setShowReturnedOnly(false);
     setShowFollowUpOnly(false);
+    setPage(0);
   }, [maxAmount]);
 
   // Check if any filter is active
@@ -617,7 +632,7 @@ const MedicalClaimsReview = () => {
                   size="small"
                   placeholder="Search by client, provider, diagnosis..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -642,7 +657,7 @@ const MedicalClaimsReview = () => {
                   <Select
                     value={statusFilter}
                     label="Status"
-                    onChange={(e) => setStatusFilter(e.target.value)}
+                    onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
                     sx={{ borderRadius: 2, bgcolor: "#FAFAFA" }}
                   >
                     {statusOptions.map((option) => (
@@ -777,7 +792,7 @@ const MedicalClaimsReview = () => {
           {/* TABS */}
           <Tabs
             value={selectedTab}
-            onChange={(e, v) => setSelectedTab(v)}
+            onChange={(e, v) => { setSelectedTab(v); setPage(0); }}
             textColor="primary"
             indicatorColor="primary"
             variant="scrollable"
@@ -804,15 +819,65 @@ const MedicalClaimsReview = () => {
             ))}
           </Tabs>
 
-          {/* Results Count */}
-          <Box sx={{ mb: 2 }}>
+          {/* Results Count and View Controls */}
+          <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
             <Typography variant="body2" sx={{ color: "#6B7280" }}>
-              Showing <b>{filteredClaims.length}</b> of <b>{tabCounts[selectedTab]}</b> claims
+              Showing <b>{Math.min(rowsPerPage, filteredClaims.length - page * rowsPerPage)}</b> of <b>{filteredClaims.length}</b> claims
               {hasActiveFilters && " (filtered)"}
             </Typography>
+
+            <Stack direction="row" spacing={2} alignItems="center">
+              {/* Rows per page selector */}
+              <FormControl size="small" sx={{ minWidth: 120 }}>
+                <InputLabel>Per Page</InputLabel>
+                <Select
+                  value={rowsPerPage}
+                  label="Per Page"
+                  onChange={(e) => {
+                    setRowsPerPage(parseInt(e.target.value, 10));
+                    setPage(0);
+                  }}
+                  sx={{ borderRadius: 2, bgcolor: "#FAFAFA" }}
+                >
+                  {rowsPerPageOptions.map((option) => (
+                    <MenuItem key={option} value={option}>{option}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* View mode toggle */}
+              <Stack direction="row" sx={{ bgcolor: "#f1f5f9", borderRadius: 2, p: 0.5 }}>
+                <Tooltip title="Table View">
+                  <IconButton
+                    onClick={() => setViewMode("table")}
+                    sx={{
+                      bgcolor: viewMode === "table" ? "#556B2F" : "transparent",
+                      color: viewMode === "table" ? "#fff" : "#6B7280",
+                      "&:hover": { bgcolor: viewMode === "table" ? "#3D4F23" : "#e2e8f0" },
+                      borderRadius: 1.5,
+                    }}
+                  >
+                    <ViewListIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Card View">
+                  <IconButton
+                    onClick={() => setViewMode("cards")}
+                    sx={{
+                      bgcolor: viewMode === "cards" ? "#556B2F" : "transparent",
+                      color: viewMode === "cards" ? "#fff" : "#6B7280",
+                      "&:hover": { bgcolor: viewMode === "cards" ? "#3D4F23" : "#e2e8f0" },
+                      borderRadius: 1.5,
+                    }}
+                  >
+                    <ViewModuleIcon />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+            </Stack>
           </Box>
 
-          {/* TABLE CONTENT */}
+          {/* CLAIMS CONTENT */}
           {loading ? (
             <Box sx={{ textAlign: "center", mt: 10 }}>
               <CircularProgress sx={{ color: "#556B2F" }} />
@@ -829,7 +894,8 @@ const MedicalClaimsReview = () => {
                 </Button>
               )}
             </Paper>
-          ) : (
+          ) : viewMode === "table" ? (
+            /* TABLE VIEW */
             <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
               <Table>
                 <TableHead>
@@ -844,93 +910,315 @@ const MedicalClaimsReview = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredClaims.map((claim) => {
-                    const isReturned = isReturnedByCoordinator(claim);
-                    const isFollowUp = claim.isFollowUp || (claim.providerRole === ROLES.DOCTOR && claim.amount === 0);
-                    const statusProps = getStatusChipProps(claim.status);
+                  {filteredClaims
+                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                    .map((claim) => {
+                      const isReturned = isReturnedByCoordinator(claim);
+                      const isFollowUp = claim.isFollowUp || (claim.providerRole === ROLES.DOCTOR && claim.amount === 0);
+                      const statusProps = getStatusChipProps(claim.status);
 
-                    return (
-                      <TableRow
-                        key={claim.id}
-                        hover
-                        sx={{
-                          bgcolor: isReturned ? "#FFF5F5" : "inherit",
-                          "&:hover": { bgcolor: isReturned ? "#FFEBEE" : "#F5F5F5" },
-                        }}
-                      >
-                        <TableCell>
-                          <Typography fontWeight="500" sx={{ color: "#3D4F23" }}>
-                            {claim.clientName || "N/A"}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            ID: {claim.id?.substring(0, 8)}...
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography>{claim.providerName || "N/A"}</Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {claim.providerRole}
-                          </Typography>
-                        </TableCell>
-                        <TableCell sx={{ maxWidth: 200 }}>
-                          <Typography noWrap title={claim.diagnosis || "N/A"}>
-                            {claim.diagnosis || "N/A"}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          {isFollowUp ? (
-                            <Stack direction="row" alignItems="center" spacing={0.5}>
-                              <Typography fontWeight="bold" color="text.secondary">0 {CURRENCY.SYMBOL}</Typography>
-                              <Chip label="Follow-up" size="small" sx={{ bgcolor: "#fef3c7", color: "#92400e", fontSize: "0.65rem", height: 18 }} />
+                      return (
+                        <TableRow
+                          key={claim.id}
+                          hover
+                          sx={{
+                            bgcolor: isReturned ? "#FFF5F5" : "inherit",
+                            "&:hover": { bgcolor: isReturned ? "#FFEBEE" : "#F5F5F5" },
+                          }}
+                        >
+                          <TableCell>
+                            <Typography fontWeight="500" sx={{ color: "#3D4F23" }}>
+                              {claim.clientName || "N/A"}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              ID: {claim.id?.substring(0, 8)}...
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography>{claim.providerName || "N/A"}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {claim.providerRole}
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={{ maxWidth: 200 }}>
+                            <Typography noWrap title={claim.diagnosis || "N/A"}>
+                              {claim.diagnosis || "N/A"}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            {isFollowUp ? (
+                              <Stack direction="row" alignItems="center" spacing={0.5}>
+                                <Typography fontWeight="bold" color="text.secondary">0 {CURRENCY.SYMBOL}</Typography>
+                                <Chip label="Follow-up" size="small" sx={{ bgcolor: "#fef3c7", color: "#92400e", fontSize: "0.65rem", height: 18 }} />
+                              </Stack>
+                            ) : (
+                              <Typography fontWeight="bold">{formatAmount(claim.amount)}</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Chip label={statusProps.label} color={statusProps.color} size="small" />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{claim.serviceDate || "N/A"}</Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {timeSince(claim.submittedAt)}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Stack direction="row" spacing={0.5} justifyContent="center">
+                              <Tooltip title="View Details">
+                                <IconButton size="small" onClick={() => handleViewDetails(claim)} sx={{ color: "#1976D2" }}>
+                                  <InfoIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title={isReturned ? "Re-Approve" : "Approve"}>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleApprove(claim)}
+                                  disabled={isSubmitting}
+                                  sx={{ color: "#4CAF50" }}
+                                >
+                                  <CheckCircleIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Reject">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleOpenReject(claim)}
+                                  disabled={isSubmitting}
+                                  sx={{ color: "#F44336" }}
+                                >
+                                  <CancelIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
                             </Stack>
-                          ) : (
-                            <Typography fontWeight="bold">{formatAmount(claim.amount)}</Typography>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={statusProps.label} color={statusProps.color} size="small" />
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">{claim.serviceDate || "N/A"}</Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {timeSince(claim.submittedAt)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Stack direction="row" spacing={0.5} justifyContent="center">
-                            <Tooltip title="View Details">
-                              <IconButton size="small" onClick={() => handleViewDetails(claim)} sx={{ color: "#1976D2" }}>
-                                <InfoIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title={isReturned ? "Re-Approve" : "Approve"}>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleApprove(claim)}
-                                disabled={isSubmitting}
-                                sx={{ color: "#4CAF50" }}
-                              >
-                                <CheckCircleIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Reject">
-                              <IconButton
-                                size="small"
-                                onClick={() => handleOpenReject(claim)}
-                                disabled={isSubmitting}
-                                sx={{ color: "#F44336" }}
-                              >
-                                <CancelIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </Stack>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                 </TableBody>
               </Table>
             </TableContainer>
+          ) : (
+            /* CARD VIEW */
+            <Grid container spacing={3}>
+              {filteredClaims
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((claim) => {
+                  const isReturned = isReturnedByCoordinator(claim);
+                  const isFollowUp = claim.isFollowUp || (claim.providerRole === ROLES.DOCTOR && claim.amount === 0);
+                  const statusProps = getStatusChipProps(claim.status);
+
+                  return (
+                    <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={claim.id}>
+                      <Card
+                        sx={{
+                          borderRadius: 3,
+                          boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                          border: isReturned ? "2px solid #F44336" : "1px solid #e2e8f0",
+                          bgcolor: isReturned ? "#FFF5F5" : "#fff",
+                          transition: "transform 0.2s, box-shadow 0.2s",
+                          "&:hover": {
+                            transform: "translateY(-4px)",
+                            boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
+                          },
+                        }}
+                      >
+                        <CardContent sx={{ p: 3 }}>
+                          {/* Header */}
+                          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
+                            <Box>
+                              <Typography variant="h6" fontWeight="bold" sx={{ color: "#3D4F23" }}>
+                                {claim.clientName || "N/A"}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                ID: {claim.id?.substring(0, 8)}...
+                              </Typography>
+                            </Box>
+                            <Stack direction="row" spacing={0.5}>
+                              <Chip label={statusProps.label} color={statusProps.color} size="small" />
+                              {isReturned && <Chip label="Returned" color="error" size="small" />}
+                            </Stack>
+                          </Box>
+
+                          <Divider sx={{ my: 2 }} />
+
+                          {/* Details */}
+                          <Stack spacing={1.5}>
+                            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                              <Typography variant="body2" color="text.secondary">Provider</Typography>
+                              <Typography variant="body2" fontWeight={500}>
+                                {claim.providerName || "N/A"}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                              <Typography variant="body2" color="text.secondary">Role</Typography>
+                              <Chip label={claim.providerRole} size="small" variant="outlined" sx={{ fontSize: "0.7rem", height: 22 }} />
+                            </Box>
+                            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                              <Typography variant="body2" color="text.secondary">Diagnosis</Typography>
+                              <Typography variant="body2" fontWeight={500} sx={{ maxWidth: 150, textAlign: "right" }} noWrap title={claim.diagnosis || "N/A"}>
+                                {claim.diagnosis || "N/A"}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <Typography variant="body2" color="text.secondary">Amount</Typography>
+                              {isFollowUp ? (
+                                <Stack direction="row" alignItems="center" spacing={0.5}>
+                                  <Typography fontWeight="bold" color="text.secondary">0 {CURRENCY.SYMBOL}</Typography>
+                                  <Chip label="Follow-up" size="small" sx={{ bgcolor: "#fef3c7", color: "#92400e", fontSize: "0.6rem", height: 18 }} />
+                                </Stack>
+                              ) : (
+                                <Typography variant="body1" fontWeight="bold" sx={{ color: "#556B2F" }}>
+                                  {formatAmount(claim.amount)}
+                                </Typography>
+                              )}
+                            </Box>
+                            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                              <Typography variant="body2" color="text.secondary">Date</Typography>
+                              <Box sx={{ textAlign: "right" }}>
+                                <Typography variant="body2">{claim.serviceDate || "N/A"}</Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {timeSince(claim.submittedAt)}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Stack>
+
+                          <Divider sx={{ my: 2 }} />
+
+                          {/* Actions */}
+                          <Stack direction="row" spacing={1} justifyContent="center">
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<InfoIcon />}
+                              onClick={() => handleViewDetails(claim)}
+                              sx={{ textTransform: "none", borderColor: "#1976D2", color: "#1976D2" }}
+                            >
+                              Details
+                            </Button>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              startIcon={<CheckCircleIcon />}
+                              onClick={() => handleApprove(claim)}
+                              disabled={isSubmitting}
+                              sx={{ textTransform: "none", bgcolor: "#4CAF50", "&:hover": { bgcolor: "#388E3C" } }}
+                            >
+                              {isReturned ? "Re-Approve" : "Approve"}
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<CancelIcon />}
+                              onClick={() => handleOpenReject(claim)}
+                              disabled={isSubmitting}
+                              sx={{ textTransform: "none", borderColor: "#F44336", color: "#F44336" }}
+                            >
+                              Reject
+                            </Button>
+                          </Stack>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  );
+                })}
+            </Grid>
+          )}
+
+          {/* PAGINATION CONTROLS */}
+          {filteredClaims.length > 0 && (
+            <Paper sx={{ mt: 3, p: 2, borderRadius: 2, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Page {page + 1} of {Math.ceil(filteredClaims.length / rowsPerPage)} ({filteredClaims.length} total claims)
+              </Typography>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Tooltip title="First Page">
+                  <span>
+                    <IconButton
+                      onClick={() => setPage(0)}
+                      disabled={page === 0}
+                      size="small"
+                      sx={{ bgcolor: "#f1f5f9", "&:hover": { bgcolor: "#e2e8f0" } }}
+                    >
+                      <FirstPageIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title="Previous Page">
+                  <span>
+                    <IconButton
+                      onClick={() => setPage(page - 1)}
+                      disabled={page === 0}
+                      size="small"
+                      sx={{ bgcolor: "#f1f5f9", "&:hover": { bgcolor: "#e2e8f0" } }}
+                    >
+                      <NavigateBeforeIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+
+                {/* Page number buttons */}
+                {Array.from({ length: Math.min(5, Math.ceil(filteredClaims.length / rowsPerPage)) }, (_, i) => {
+                  const totalPages = Math.ceil(filteredClaims.length / rowsPerPage);
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i;
+                  } else if (page < 3) {
+                    pageNum = i;
+                  } else if (page > totalPages - 4) {
+                    pageNum = totalPages - 5 + i;
+                  } else {
+                    pageNum = page - 2 + i;
+                  }
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={page === pageNum ? "contained" : "outlined"}
+                      size="small"
+                      onClick={() => setPage(pageNum)}
+                      sx={{
+                        minWidth: 36,
+                        bgcolor: page === pageNum ? "#556B2F" : "transparent",
+                        borderColor: "#556B2F",
+                        color: page === pageNum ? "#fff" : "#556B2F",
+                        "&:hover": {
+                          bgcolor: page === pageNum ? "#3D4F23" : "rgba(85, 107, 47, 0.1)",
+                        },
+                      }}
+                    >
+                      {pageNum + 1}
+                    </Button>
+                  );
+                })}
+
+                <Tooltip title="Next Page">
+                  <span>
+                    <IconButton
+                      onClick={() => setPage(page + 1)}
+                      disabled={page >= Math.ceil(filteredClaims.length / rowsPerPage) - 1}
+                      size="small"
+                      sx={{ bgcolor: "#f1f5f9", "&:hover": { bgcolor: "#e2e8f0" } }}
+                    >
+                      <NavigateNextIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title="Last Page">
+                  <span>
+                    <IconButton
+                      onClick={() => setPage(Math.ceil(filteredClaims.length / rowsPerPage) - 1)}
+                      disabled={page >= Math.ceil(filteredClaims.length / rowsPerPage) - 1}
+                      size="small"
+                      sx={{ bgcolor: "#f1f5f9", "&:hover": { bgcolor: "#e2e8f0" } }}
+                    >
+                      <LastPageIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </Stack>
+            </Paper>
           )}
         </Box>
       </Box>
@@ -1208,21 +1496,83 @@ const MedicalClaimsReview = () => {
 
       {/* ATTACHMENTS MODAL */}
       <Dialog open={openFilesModal} onClose={() => setOpenFilesModal(false)} maxWidth="md" fullWidth>
-        <DialogTitle>{t("attachments", language)}</DialogTitle>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span>{t("attachments", language)}</span>
+          {selectedClaim?.invoiceImagePath && (
+            <Stack direction="row" spacing={1}>
+              <Tooltip title={t("openInNewTab", language) || "Open in New Tab"}>
+                <IconButton
+                  onClick={() => {
+                    const url = selectedClaim.invoiceImagePath.startsWith("http")
+                      ? selectedClaim.invoiceImagePath
+                      : `${API_BASE_URL}${selectedClaim.invoiceImagePath}`;
+                    window.open(url, "_blank");
+                  }}
+                  sx={{ color: "#556B2F" }}
+                >
+                  <OpenInNewIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title={t("downloadDocument", language) || "Download Document"}>
+                <IconButton
+                  onClick={async () => {
+                    try {
+                      const url = selectedClaim.invoiceImagePath.startsWith("http")
+                        ? selectedClaim.invoiceImagePath
+                        : `${API_BASE_URL}${selectedClaim.invoiceImagePath}`;
+
+                      // Fetch the file as blob
+                      const response = await fetch(url);
+                      const blob = await response.blob();
+
+                      // Create download link
+                      const downloadUrl = window.URL.createObjectURL(blob);
+                      const link = document.createElement("a");
+                      link.href = downloadUrl;
+
+                      // Extract filename from path or use default
+                      const filename = selectedClaim.invoiceImagePath.split("/").pop() || "attachment";
+                      link.download = filename;
+
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      window.URL.revokeObjectURL(downloadUrl);
+                    } catch (err) {
+                      console.error("Download failed:", err);
+                      setSnackbar({
+                        open: true,
+                        message: t("downloadFailed", language) || "Failed to download file",
+                        severity: "error",
+                      });
+                    }
+                  }}
+                  sx={{ color: "#1976D2" }}
+                >
+                  <DownloadIcon />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+          )}
+        </DialogTitle>
         <DialogContent dividers>
           {selectedClaim?.invoiceImagePath ? (
             <Box sx={{ mb: 2 }}>
               {selectedClaim.invoiceImagePath.toLowerCase().endsWith(".pdf") ? (
                 <iframe
-                  src={selectedClaim.invoiceImagePath}
+                  src={selectedClaim.invoiceImagePath.startsWith("http")
+                    ? selectedClaim.invoiceImagePath
+                    : `${API_BASE_URL}${selectedClaim.invoiceImagePath}`}
                   title="Invoice PDF"
                   width="100%"
-                  height="400px"
-                  style={{ borderRadius: 8, border: "none" }}
+                  height="500px"
+                  style={{ borderRadius: 8, border: "1px solid #e0e0e0" }}
                 />
               ) : (
                 <img
-                  src={selectedClaim.invoiceImagePath}
+                  src={selectedClaim.invoiceImagePath.startsWith("http")
+                    ? selectedClaim.invoiceImagePath
+                    : `${API_BASE_URL}${selectedClaim.invoiceImagePath}`}
                   alt="Invoice"
                   style={{ width: "100%", borderRadius: 8, marginBottom: 10 }}
                   onError={(e) => { e.target.style.display = "none"; }}

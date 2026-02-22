@@ -40,7 +40,7 @@ import Help from "../src/Help";
 
 // Manager Components (lazy loaded)
 const ManagerDashboard = lazy(() => import("./Component/Manager/ManagerDashboard"));
-const PolicyList = lazy(() => import("./Component/Manager/Policies/PolicyList"));
+const PolicyManagement = lazy(() => import("./Component/Manager/Policies/GlobalPolicy/PolicyManagement"));
 const ManageNotifications = lazy(() => import("./Component/Manager/Notifications/ManageNotifications"));
 const ClaimsReport = lazy(() => import("./Component/Manager/Reports/ClaimsReport"));
 const FinancialReport = lazy(() => import("./Component/Manager/Reports/FinancialReport"));
@@ -142,10 +142,10 @@ function App() {
           }
         />
         <Route
-          path="/PolicyList"
+          path="/PolicyManagement"
           element={
             <PrivateRoute role={ROLES.INSURANCE_MANAGER}>
-              <PolicyList />
+              <PolicyManagement />
             </PrivateRoute>
           }
         />

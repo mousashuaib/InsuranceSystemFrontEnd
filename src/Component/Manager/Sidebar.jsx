@@ -241,12 +241,12 @@ const Sidebar = () => {
             {t("policies", language)}
           </Typography>
         )}
-        <Tooltip title={t("policyList", language)} placement={isRTL ? "left" : "right"} disableHoverListener={open || isDrawer}>
-          <ListItemButton component={Link} to="/PolicyList">
+        <Tooltip title={language === "ar" ? "إدارة البوليصة العامة" : "Global Policy Management"} placement={isRTL ? "left" : "right"} disableHoverListener={open || isDrawer}>
+          <ListItemButton component={Link} to="/PolicyManagement">
             <ListItemIcon>
-              <PolicyIcon sx={{ color: "#00BFFF", fontSize: { xs: 26, sm: 22 } }} />
+              <GavelIcon sx={{ color: "#9C27B0", fontSize: { xs: 26, sm: 22 } }} />
             </ListItemIcon>
-            {(open || isDrawer) && <ListItemText primary={t("managePolicyList", language)} />}
+            {(open || isDrawer) && <ListItemText primary={language === "ar" ? "البوليصة العامة" : "Global Policy"} />}
           </ListItemButton>
         </Tooltip>
 
