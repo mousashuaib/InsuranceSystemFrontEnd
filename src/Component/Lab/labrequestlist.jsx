@@ -186,7 +186,7 @@ const LabRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClaim, onU
       default:
         return {
           color: "default",
-          label: status || "Unknown",
+          label: status || t("unknown", language),
           bgcolor: "#F5F5F5",
           textColor: "#757575",
           icon: "❓",
@@ -690,11 +690,12 @@ const LabRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClaim, onU
     }
   );
 
-  // First filter by search term
+  // First filter by search term - only show results after searching
+  const hasSearchTerm = searchTerm.trim().length > 0;
   const searchFilteredRequests = sortedRequests.filter(
     (r) => {
-      // Filter by search term: full name, employee ID, and insurance number
-      if (!searchTerm.trim()) return true;
+      // Only show results when user has entered a search term
+      if (!hasSearchTerm) return false;
 
       const searchLower = searchTerm.toLowerCase();
 
@@ -704,12 +705,16 @@ const LabRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClaim, onU
       // Search by Employee ID (main client)
       const matchesEmployeeId = r.employeeId?.toLowerCase().includes(searchLower);
 
+      // Search by National ID (main client)
+      const matchesNationalId = r.memberNationalId?.toLowerCase().includes(searchLower);
+
       // Search by family member info if exists
       const familyMemberInfo = getFamilyMemberInfo(r);
       const matchesFamilyMemberName = familyMemberInfo?.name?.toLowerCase().includes(searchLower);
       const matchesFamilyMemberInsuranceNumber = familyMemberInfo?.insuranceNumber?.toLowerCase().includes(searchLower);
+      const matchesFamilyMemberNationalId = familyMemberInfo?.nationalId?.toLowerCase().includes(searchLower);
 
-      return matchesName || matchesEmployeeId || matchesFamilyMemberName || matchesFamilyMemberInsuranceNumber;
+      return matchesName || matchesEmployeeId || matchesNationalId || matchesFamilyMemberName || matchesFamilyMemberInsuranceNumber || matchesFamilyMemberNationalId;
     }
   );
 
@@ -821,7 +826,7 @@ const LabRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClaim, onU
             <Stack spacing={2}>
               {/* Search Bar - Only by patient name and employee ID */}
               <TextField
-                placeholder={t("searchByTestDoctorLabTech", language)}
+                placeholder={t("searchByEmployeeIdOrNationalId", language)}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyPress={(e) => {
@@ -869,7 +874,7 @@ const LabRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClaim, onU
                 <Stack direction="row" alignItems="center" spacing={1}>
                   <FamilyRestroomIcon sx={{ color: "#92400e" }} />
                   <Typography variant="subtitle2" fontWeight={700} color="#92400e">
-                    {language === "ar" ? "تصفية حسب أفراد العائلة:" : "Filter by Family Member:"}
+                    {t("filterByFamilyMember", language)}
                   </Typography>
                 </Stack>
                 <FormControl size="small" sx={{ minWidth: 200, bgcolor: "white", borderRadius: 1 }}>
@@ -881,13 +886,13 @@ const LabRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClaim, onU
                   >
                     <MenuItem value="all">
                       <Stack direction="row" alignItems="center" spacing={1}>
-                        <span>{language === "ar" ? "🔍 الكل" : "🔍 All"}</span>
+                        <span>🔍 {t("all", language)}</span>
                       </Stack>
                     </MenuItem>
                     <MenuItem value="main">
                       <Stack direction="row" alignItems="center" spacing={1}>
                         <PersonIcon sx={{ fontSize: 18, color: "#556B2F" }} />
-                        <span>{mainClientName || (language === "ar" ? "العميل الرئيسي" : "Main Client")}</span>
+                        <span>{mainClientName || t("mainClient", language)}</span>
                       </Stack>
                     </MenuItem>
                     {familyMembers.map(([name, relation]) => (
@@ -907,7 +912,7 @@ const LabRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClaim, onU
                     onClick={() => setFamilyMemberFilter("all")}
                     sx={{ color: "#92400e", textTransform: "none" }}
                   >
-                    {language === "ar" ? "إظهار الكل" : "Show All"}
+                    {t("showAll", language)}
                   </Button>
                 )}
               </Stack>
@@ -915,12 +920,37 @@ const LabRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClaim, onU
           </Card>
         )}
 
-        {/* Results Count */}
-        <Typography variant="body1" sx={{ mb: 3, color: "text.secondary" }}>
-          {filteredRequests.length === 0 && activeRequests.length > 0
-            ? `${t("noLabRequestsFound", language)}`
-            : `${t("showing", language)} ${filteredRequests.length} ${t("labRequests", language)}`}
-        </Typography>
+        {/* Prompt to search - shown when no search term entered */}
+        {!hasSearchTerm && (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 6,
+              textAlign: "center",
+              borderRadius: 3,
+              border: "2px dashed #E8EDE0",
+              bgcolor: "#fafaf5",
+              mb: 4,
+            }}
+          >
+            <SearchIcon sx={{ fontSize: 64, color: "#556B2F", mb: 2, opacity: 0.5 }} />
+            <Typography variant="h6" color="#556B2F" fontWeight={600} gutterBottom>
+              {t("enterIdToSearch", language)}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {t("searchToViewLabRequests", language)}
+            </Typography>
+          </Paper>
+        )}
+
+        {/* Results Count - only show when searching */}
+        {hasSearchTerm && (
+          <Typography variant="body1" sx={{ mb: 3, color: "text.secondary" }}>
+            {filteredRequests.length === 0
+              ? `${t("noLabRequestsFound", language)}`
+              : `${t("showing", language)} ${filteredRequests.length} ${t("labRequests", language)}`}
+          </Typography>
+        )}
 
         {/* Grid of Cards - 3 columns */}
         <Box
@@ -947,15 +977,15 @@ const LabRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClaim, onU
             let displayGender = req.memberGender || null;
             
             if (displayAge && typeof displayAge === 'number') {
-              displayAge = `${displayAge} years`;
+              displayAge = `${displayAge} ${t("years", language)}`;
             }
-            
+
             if (displayAge && typeof displayAge === 'string') {
               displayAge = displayAge.replace(/\s+/g, ' ').trim();
-              if (!displayAge.includes('year')) {
+              if (!displayAge.includes('year') && !displayAge.includes('سنة')) {
                 const ageNum = parseInt(displayAge);
                 if (!isNaN(ageNum)) {
-                  displayAge = `${ageNum} years`;
+                  displayAge = `${ageNum} ${t("years", language)}`;
                 }
               }
             }

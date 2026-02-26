@@ -15,7 +15,6 @@ import LogoutDialog from "../Auth/LogoutDialog";
 import RadiologyPersonalProfile from "../Profile/RadiologyProfile";
 import SharedHealthcareProviderFormClaim from "../Shared/SharedHealthcareProviderFormClaim";
 import HealthcareProviderMyClaims from "../Shared/HealthcareProviderMyClaims";
-import ConsultationPrices from "../Shared/ConsultationPrices";
 import FinancialReport from "../Doctor/FinancialReport";
 
 // ✅ MUI
@@ -314,11 +313,9 @@ const RadiologyDashboard = () => {
           overflowX: "hidden",
           backgroundColor: "#FAF8F5",
           height: "100vh",
-          marginLeft: "240px",
-          transition: "margin-left 0.3s ease",
-          "@media (max-width: 600px)": {
-            marginLeft: "75px",
-          },
+          marginLeft: isRTL ? 0 : { xs: 0, sm: "70px", md: "240px" },
+          marginRight: isRTL ? { xs: 0, sm: "70px", md: "240px" } : 0,
+          transition: "margin 0.3s ease",
           "&::-webkit-scrollbar": {
             width: "8px",
           },
@@ -811,7 +808,6 @@ const RadiologyDashboard = () => {
           <HealthcareProviderMyClaims key={claimsRefreshKey} userRole={ROLES.RADIOLOGIST} />
         )}
         {activeView === "financial-report" && <FinancialReport />}
-        {activeView === "consultation-prices" && <ConsultationPrices />}
 
         {activeView === "profile" && (
           <RadiologyPersonalProfile userInfo={userInfo} setUser={setUserInfo} refresh={fetchData} />

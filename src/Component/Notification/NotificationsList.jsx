@@ -28,8 +28,11 @@ import WarningIcon from "@mui/icons-material/Warning";
 import DescriptionIcon from "@mui/icons-material/Description";
 import { api, getToken } from "../../utils/apiService";
 import { API_ENDPOINTS } from "../../config/api";
+import { useLanguage } from "../../context/LanguageContext";
+import { t } from "../../config/translations";
 
 const NotificationsList = memo(function NotificationsList({ refresh }) {
+  const { language, isRTL } = useLanguage();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [openReplyDialog, setOpenReplyDialog] = useState(false);
@@ -66,7 +69,7 @@ const NotificationsList = memo(function NotificationsList({ refresh }) {
       setNotifications([]);
       setSnackbar({
         open: true,
-        message: "Failed to load notifications",
+        message: t("failedToLoadNotifications", language),
         severity: "error",
       });
     } finally {
@@ -101,7 +104,7 @@ const NotificationsList = memo(function NotificationsList({ refresh }) {
       setUnreadCount((prev) => Math.max(prev - 1, 0));
       refresh?.();
     } catch {
-      setSnackbar({ open: true, message: "Failed to update notification.", severity: "error" });
+      setSnackbar({ open: true, message: t("failedToUpdateNotification", language), severity: "error" });
     } finally {
       setLoadingId(null);
     }
@@ -112,10 +115,10 @@ const NotificationsList = memo(function NotificationsList({ refresh }) {
       await api.patch(API_ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ, {});
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
-      setSnackbar({ open: true, message: "All notifications marked as read", severity: "success" });
+      setSnackbar({ open: true, message: t("allNotificationsMarkedRead", language), severity: "success" });
       refresh?.();
     } catch {
-      setSnackbar({ open: true, message: "Failed to mark all as read", severity: "error" });
+      setSnackbar({ open: true, message: t("failedMarkAllRead", language), severity: "error" });
     }
   }, [refresh]);
 
@@ -128,7 +131,7 @@ const NotificationsList = memo(function NotificationsList({ refresh }) {
 
   const handleConfirmReply = async () => {
     if (!replyMessage.trim()) {
-      setSnackbar({ open: true, message: "Reply cannot be empty!", severity: "error" });
+      setSnackbar({ open: true, message: t("replyCannotBeEmpty", language), severity: "error" });
       return;
     }
     try {
@@ -145,11 +148,11 @@ const NotificationsList = memo(function NotificationsList({ refresh }) {
           n.id === selectedNotification.id ? { ...n, read: true, replied: true } : n
         )
       );
-      setSnackbar({ open: true, message: "Reply sent successfully!", severity: "success" });
+      setSnackbar({ open: true, message: t("replySentSuccess", language), severity: "success" });
       setOpenReplyDialog(false);
       refresh?.();
     } catch {
-      setSnackbar({ open: true, message: "Failed to send reply!", severity: "error" });
+      setSnackbar({ open: true, message: t("failedSendReply", language), severity: "error" });
     } finally {
       setLoadingId(null);
     }
@@ -157,7 +160,7 @@ const NotificationsList = memo(function NotificationsList({ refresh }) {
 
   const handleSendNotification = useCallback(async () => {
     if (!newNotification.recipientName || !newNotification.message) {
-      setSnackbar({ open: true, message: "All fields are required!", severity: "error" });
+      setSnackbar({ open: true, message: t("allFieldsRequired", language), severity: "error" });
       return;
     }
     try {
@@ -165,13 +168,13 @@ const NotificationsList = memo(function NotificationsList({ refresh }) {
         API_ENDPOINTS.NOTIFICATIONS.BY_FULLNAME,
         { ...newNotification, type: "MANUAL_MESSAGE" }
       );
-      setSnackbar({ open: true, message: "Notification sent successfully!", severity: "success" });
+      setSnackbar({ open: true, message: t("notificationSentSuccess", language), severity: "success" });
       setNewNotification({ recipientName: "", message: "" });
       setOpenSendDialog(false);
       fetchNotifications();
       refresh?.();
     } catch {
-      setSnackbar({ open: true, message: "Failed to send notification", severity: "error" });
+      setSnackbar({ open: true, message: t("failedToSendNotification", language), severity: "error" });
     }
   }, [newNotification, fetchNotifications, refresh]);
 
@@ -202,28 +205,28 @@ const NotificationsList = memo(function NotificationsList({ refresh }) {
   };
 
   return (
-    <Box sx={{ p: 3, backgroundColor: "#FAF8F5", minHeight: "100vh" }}>
+    <Box dir={isRTL ? "rtl" : "ltr"} sx={{ p: 3, backgroundColor: "#FAF8F5", minHeight: "100vh" }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ color: "#3D4F23", display: "flex", alignItems: "center" }}>
-        <NotificationsIcon sx={{ mr: 1, fontSize: 35, color: "#556B2F" }} />
-        Notifications
+        <NotificationsIcon sx={{ mr: isRTL ? 0 : 1, ml: isRTL ? 1 : 0, fontSize: 35, color: "#556B2F" }} />
+        {t("notifications", language)}
       </Typography>
 
       <Typography variant="body1" color="text.secondary" gutterBottom>
-        View, send, and respond to notifications.
+        {t("viewSendRespondNotifications", language)}
       </Typography>
 
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2, flexWrap: "wrap", gap: 1 }}>
         <Typography variant="h6" color="text.secondary">
-          Unread Notifications: {unreadCount}
+          {t("unreadNotifications", language)}: {unreadCount}
         </Typography>
         <Box sx={{ display: "flex", gap: 2 }}>
           {unreadCount > 0 && (
             <Button variant="contained" color="success" onClick={markAllAsRead}>
-              Mark All as Read
+              {t("markAllAsRead", language)}
             </Button>
           )}
           <Button variant="contained" color="primary" onClick={() => setOpenSendDialog(true)}>
-            ➕ Send Notification
+            {t("sendNotification", language)}
           </Button>
         </Box>
       </Box>
@@ -235,7 +238,7 @@ const NotificationsList = memo(function NotificationsList({ refresh }) {
           <CircularProgress />
         </Box>
       ) : notifications.length === 0 ? (
-        <Typography>No notifications found.</Typography>
+        <Typography>{t("noNotificationsFound", language)}</Typography>
       ) : (
         notifications.map((n) => {
           const { icon, bar } = getIconAndColor(n.type);
@@ -271,7 +274,7 @@ const NotificationsList = memo(function NotificationsList({ refresh }) {
                 <Box sx={{ display: "flex", alignItems: "center", mb: 0.5, ml: 2 }}>
                   {icon}
                   <Typography variant="subtitle1" sx={{ ml: 1, fontWeight: "bold", color: "#3D4F23" }}>
-                    {n.senderName || "System"}
+                    {n.senderName || t("system", language)}
                   </Typography>
                 </Box>
 
@@ -288,15 +291,15 @@ const NotificationsList = memo(function NotificationsList({ refresh }) {
                     {new Date(n.createdAt).toLocaleString()}
                   </Typography>
                   <Box sx={{ display: "flex", gap: 0.5 }}>
-                    <Chip label={n.read ? "Read" : "Unread"} color={n.read ? "default" : "primary"} size="small" />
-                    {n.replied && <Chip label="✔ Replied" color="success" size="small" variant="outlined" />}
+                    <Chip label={n.read ? t("read", language) : t("unread", language)} color={n.read ? "default" : "primary"} size="small" />
+                    {n.replied && <Chip label={`✔ ${t("replied", language)}`} color="success" size="small" variant="outlined" />}
                   </Box>
                 </Box>
 
                 {n.type === "MANUAL_MESSAGE" && !n.replied && (
                   <Box sx={{ mt: 1, display: "flex", justifyContent: "flex-end", pr: 1 }}>
                     <Button variant="contained" size="small" color="success" onClick={() => handleReply(n)} disabled={loadingId === n.id}>
-                      {loadingId === n.id ? <CircularProgress size={14} color="inherit" /> : "Reply"}
+                      {loadingId === n.id ? <CircularProgress size={14} color="inherit" /> : t("reply", language)}
                     </Button>
                   </Box>
                 )}
@@ -308,32 +311,32 @@ const NotificationsList = memo(function NotificationsList({ refresh }) {
 
       {/* ✅ Reply Dialog */}
       <Dialog open={openReplyDialog} onClose={() => setOpenReplyDialog(false)}>
-        <DialogTitle>Reply to Notification</DialogTitle>
+        <DialogTitle>{t("replyToNotification", language)}</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" gutterBottom>Message: {selectedNotification?.message}</Typography>
-          <TextField fullWidth label="Your Reply" multiline rows={3} value={replyMessage} onChange={(e) => setReplyMessage(e.target.value)} sx={{ mt: 2 }} />
+          <Typography variant="body2" gutterBottom>{t("message", language)}: {selectedNotification?.message}</Typography>
+          <TextField fullWidth label={t("yourReply", language)} multiline rows={3} value={replyMessage} onChange={(e) => setReplyMessage(e.target.value)} sx={{ mt: 2 }} />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenReplyDialog(false)}>Cancel</Button>
+          <Button onClick={() => setOpenReplyDialog(false)}>{t("cancel", language)}</Button>
           <Button onClick={handleConfirmReply} variant="contained" color="primary" disabled={loadingId === selectedNotification?.id}>
-            {loadingId === selectedNotification?.id ? <CircularProgress size={16} color="inherit" /> : "Send Reply"}
+            {loadingId === selectedNotification?.id ? <CircularProgress size={16} color="inherit" /> : t("sendReply", language)}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* ✅ Send Notification Dialog */}
       <Dialog open={openSendDialog} onClose={() => setOpenSendDialog(false)}>
-        <DialogTitle>Send New Notification</DialogTitle>
+        <DialogTitle>{t("sendNewNotification", language)}</DialogTitle>
         <DialogContent>
           <FormControl fullWidth sx={{ mt: 2 }}>
-            <InputLabel id="recipient-label">Recipient</InputLabel>
+            <InputLabel id="recipient-label">{t("recipient", language)}</InputLabel>
             <Select
-              label="Recipient"
+              label={t("recipient", language)}
               labelId="recipient-label"
               value={newNotification.recipientName}
               onChange={(e) => setNewNotification({ ...newNotification, recipientName: e.target.value })}
             >
-              <MenuItem value="">-- Select Recipient --</MenuItem>
+              <MenuItem value="">{t("selectRecipient", language)}</MenuItem>
               {recipients.map((r) => (
                 <MenuItem key={r.id} value={r.fullName}>
                   {r.fullName}
@@ -341,11 +344,11 @@ const NotificationsList = memo(function NotificationsList({ refresh }) {
               ))}
             </Select>
           </FormControl>
-          <TextField fullWidth label="Message" multiline rows={3} value={newNotification.message} onChange={(e) => setNewNotification({ ...newNotification, message: e.target.value })} sx={{ mt: 2 }} />
+          <TextField fullWidth label={t("message", language)} multiline rows={3} value={newNotification.message} onChange={(e) => setNewNotification({ ...newNotification, message: e.target.value })} sx={{ mt: 2 }} />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenSendDialog(false)}>Cancel</Button>
-          <Button onClick={handleSendNotification} variant="contained" sx={{ backgroundColor: "#556B2F" }}>Send</Button>
+          <Button onClick={() => setOpenSendDialog(false)}>{t("cancel", language)}</Button>
+          <Button onClick={handleSendNotification} variant="contained" sx={{ backgroundColor: "#556B2F" }}>{t("send", language)}</Button>
         </DialogActions>
       </Dialog>
 

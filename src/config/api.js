@@ -36,7 +36,7 @@ export const API_ENDPOINTS = {
   HEALTHCARE_CLAIMS: {
     BASE: '/api/healthcare-provider-claims',
     MY_CLAIMS: '/api/healthcare-provider-claims/my-claims',
-    SUBMIT: '/api/healthcare-provider-claims',
+    SUBMIT: '/api/healthcare-provider-claims/create',
     MEDICAL_REVIEW: '/api/healthcare-provider-claims/medical-review',
     COORDINATION_REVIEW: '/api/healthcare-provider-claims/coordination-review',
     FINAL_DECISIONS: '/api/healthcare-provider-claims/final-decisions',

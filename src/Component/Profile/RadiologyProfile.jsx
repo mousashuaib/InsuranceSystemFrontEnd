@@ -33,7 +33,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import VerifiedIcon from "@mui/icons-material/Verified";
 
 const RadiologyProfileComponent = ({ userInfo, setUser, refresh }) => {
-  const { language } = useLanguage();
+  const { language, isRTL } = useLanguage();
 
   // Debug: Log userInfo to see all available fields
   console.log("RadiologyProfile userInfo:", userInfo);
@@ -175,7 +175,7 @@ const RadiologyProfileComponent = ({ userInfo, setUser, refresh }) => {
   };
 
   return (
-    <Box sx={{ p: 4, display: "flex", justifyContent: "center" }}>
+    <Box sx={{ p: 4, display: "flex", justifyContent: "center" }} dir={isRTL ? "rtl" : "ltr"}>
       <Paper
         sx={{
           p: 5,
@@ -223,7 +223,7 @@ const RadiologyProfileComponent = ({ userInfo, setUser, refresh }) => {
                   sx={{
                     position: "absolute",
                     bottom: 10,
-                    right: 10,
+                    insetInlineEnd: 10,
                     bgcolor: "#556B2F",
                     color: "#fff",
                   }}
@@ -364,7 +364,7 @@ const RadiologyProfileComponent = ({ userInfo, setUser, refresh }) => {
                 <Chip
                   label={userInfo?.roles?.[0] || "RADIOLOGIST"}
                   sx={{
-                    mr: 1,
+                    marginInlineEnd: 1,
                     background: "#556B2F",
                     color: "#fff",
                     fontWeight: "bold",

@@ -136,6 +136,7 @@ export const useSubmissions = (showSuccess, showError) => {
             : {
                 testId: isCustomLabTest ? null : lab.testId,
                 testName: testName,
+                memberId: patientForm.memberId,
                 memberName: patientForm.memberName,
                 notes: labNotes,
                 diagnosis: noDiagnosisTreatment ? "" : patientForm.diagnosis,

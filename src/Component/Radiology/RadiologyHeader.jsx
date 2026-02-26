@@ -79,7 +79,7 @@ const RadiologyHeader = memo(function RadiologyHeader({
             alignItems: "center",
             gap: 1,
             cursor: "pointer",
-            pl: 2,
+            paddingInlineStart: 2,
           }}
           onClick={onLogoClick}
         >
@@ -97,7 +97,7 @@ const RadiologyHeader = memo(function RadiologyHeader({
         </Box>
 
         {/* Right Section */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, pr: 2, flexDirection: isRTL ? "row-reverse" : "row" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, paddingInlineEnd: 2 }}>
           {/* Language Toggle */}
           <LanguageToggle />
 
@@ -109,7 +109,7 @@ const RadiologyHeader = memo(function RadiologyHeader({
           </IconButton>
 
           {/* User Info */}
-          <Box sx={{ textAlign: "right" }}>
+          <Box sx={{ textAlign: isRTL ? "left" : "right" }}>
             <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
               {userInfo?.fullName || "Radiologist"}
             </Typography>

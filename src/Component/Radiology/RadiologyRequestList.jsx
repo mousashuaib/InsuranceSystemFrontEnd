@@ -739,11 +739,12 @@ const RadiologyRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClai
     }
   );
 
-  // First filter by search term
+  // First filter by search term - only show results after searching
+  const hasSearchTerm = searchTerm.trim().length > 0;
   const searchFilteredRequests = sortedRequests.filter(
     (r) => {
-      // Filter by search term: full name, employee ID, and insurance number
-      if (!searchTerm.trim()) return true;
+      // Only show results when user has entered a search term
+      if (!hasSearchTerm) return false;
 
       const searchLower = searchTerm.toLowerCase();
 
@@ -753,12 +754,16 @@ const RadiologyRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClai
       // Search by Employee ID (main client)
       const matchesEmployeeId = r.employeeId?.toLowerCase().includes(searchLower);
 
+      // Search by National ID (main client)
+      const matchesNationalId = r.memberNationalId?.toLowerCase().includes(searchLower);
+
       // Search by family member info if exists
       const familyInfo = getFamilyMemberInfo(r);
       const matchesFamilyMemberName = familyInfo?.name?.toLowerCase().includes(searchLower);
       const matchesFamilyMemberInsuranceNumber = familyInfo?.insuranceNumber?.toLowerCase().includes(searchLower);
+      const matchesFamilyMemberNationalId = familyInfo?.nationalId?.toLowerCase().includes(searchLower);
 
-      return matchesName || matchesEmployeeId || matchesFamilyMemberName || matchesFamilyMemberInsuranceNumber;
+      return matchesName || matchesEmployeeId || matchesNationalId || matchesFamilyMemberName || matchesFamilyMemberInsuranceNumber || matchesFamilyMemberNationalId;
     }
   );
 
@@ -868,7 +873,7 @@ const RadiologyRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClai
             <Stack spacing={2}>
               {/* Search Bar - Only by patient name and employee ID */}
               <TextField
-                placeholder={t("searchPlaceholder", language)}
+                placeholder={t("searchByEmployeeIdOrNationalId", language)}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyPress={(e) => {
@@ -962,12 +967,37 @@ const RadiologyRequestList = ({ requests, userInfo, onSetClaimData, onSubmitClai
           </Card>
         )}
 
-        {/* Results Count */}
-        <Typography variant="body1" sx={{ mb: 3, color: "text.secondary" }}>
-          {filteredRequests.length === 0 && activeRequests.length > 0
-            ? `${t("noRadiologyRequestsFound", language)}`
-            : `${t("showing", language)} ${filteredRequests.length} ${t("radiologyRequests", language)}`}
-        </Typography>
+        {/* Prompt to search - shown when no search term entered */}
+        {!hasSearchTerm && (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 6,
+              textAlign: "center",
+              borderRadius: 3,
+              border: "2px dashed #E8EDE0",
+              bgcolor: "#fafaf5",
+              mb: 4,
+            }}
+          >
+            <SearchIcon sx={{ fontSize: 64, color: "#556B2F", mb: 2, opacity: 0.5 }} />
+            <Typography variant="h6" color="#556B2F" fontWeight={600} gutterBottom>
+              {t("enterIdToSearch", language)}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {t("searchToViewLabRequests", language)}
+            </Typography>
+          </Paper>
+        )}
+
+        {/* Results Count - only show when searching */}
+        {hasSearchTerm && (
+          <Typography variant="body1" sx={{ mb: 3, color: "text.secondary" }}>
+            {filteredRequests.length === 0
+              ? `${t("noRadiologyRequestsFound", language)}`
+              : `${t("showing", language)} ${filteredRequests.length} ${t("radiologyRequests", language)}`}
+          </Typography>
+        )}
 
         {/* Grid of Cards - 3 columns */}
         <Box

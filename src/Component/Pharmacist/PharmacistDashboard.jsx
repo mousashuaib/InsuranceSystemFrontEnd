@@ -429,10 +429,8 @@ const PharmacistDashboard = () => {
 
   // ✅ Submit Claim with Document
   const handleSubmitClaim = async (claimSubmission) => {
-    
-    
     if (!currentClaimData) {
-      throw new Error("❌ Claim data not available. Please verify the prescription again.");
+      throw new Error(t("claimDataNotAvailable", language));
     }
 
     // 🔄 Use entered description if provided, otherwise use automatic one
@@ -441,15 +439,17 @@ const PharmacistDashboard = () => {
       description: claimSubmission.description || currentClaimData.description
     };
 
+    // Remove extra fields not expected by backend DTO
+    const { memberName, ...claimPayload } = updatedClaimData;
+
     const formData = new FormData();
-    formData.append("data", JSON.stringify(updatedClaimData));
-    
+    formData.append("data", JSON.stringify(claimPayload));
+
     if (claimSubmission.document) {
       formData.append("document", claimSubmission.document);
-     
     }
 
-    
+    logger.log("📤 [SUBMIT CLAIM] Sending claim data:", claimPayload);
 
     await api.post(
       API_ENDPOINTS.HEALTHCARE_CLAIMS.SUBMIT,
@@ -460,7 +460,6 @@ const PharmacistDashboard = () => {
         },
       }
     );
-
 
     setCurrentClaimData(null); // Reset
     // ✅ Refresh claims list immediately after creating a new claim

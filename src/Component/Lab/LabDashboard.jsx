@@ -14,7 +14,6 @@ import LabProfile from "../Profile/LabProfile";
 import NotificationsList from "../Notification/NotificationsList";
 import LogoutDialog from "../Auth/LogoutDialog";
 import HealthcareProviderMyClaims from "../Shared/HealthcareProviderMyClaims";
-import ConsultationPrices from "../Shared/ConsultationPrices";
 import FinancialReport from "../Doctor/FinancialReport";
 
 import {
@@ -332,10 +331,12 @@ const LabDashboard = () => {
           overflowX: "hidden",
           backgroundColor: "#FAF8F5",
           height: "100vh",
-          marginLeft: "240px",
-          transition: "margin-left 0.3s ease",
+          marginLeft: isRTL ? 0 : "240px",
+          marginRight: isRTL ? "240px" : 0,
+          transition: "margin 0.3s ease",
           "@media (max-width: 600px)": {
-            marginLeft: "75px",
+            marginLeft: isRTL ? 0 : "75px",
+            marginRight: isRTL ? "75px" : 0,
           },
           "&::-webkit-scrollbar": {
             width: "8px",
@@ -826,7 +827,6 @@ const LabDashboard = () => {
           <HealthcareProviderMyClaims key={claimsRefreshKey} userRole={ROLES.LAB_TECH} />
         )}
         {activeView === "financial-report" && <FinancialReport />}
-        {activeView === "consultation-prices" && <ConsultationPrices />}
 
         {activeView === "profile" && (
           <LabProfile userInfo={userInfo} setUser={setUserInfo} refresh={fetchData} />

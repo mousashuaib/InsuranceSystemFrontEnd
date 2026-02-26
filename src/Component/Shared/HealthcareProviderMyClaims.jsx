@@ -1843,10 +1843,10 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
                       </Button>
                       )}
 
-                      {/* View Document Button */}
+                      {/* View Document Button - only show when document exists */}
                       {(Array.isArray(claim.invoiceImagePath)
                         ? claim.invoiceImagePath.length > 0
-                        : !!claim.invoiceImagePath) ? (
+                        : !!claim.invoiceImagePath) && (
                         <Button
                           variant="contained"
                           fullWidth
@@ -1869,21 +1869,6 @@ const HealthcareProviderMyClaims = ({ userRole = "DOCTOR", refreshTrigger = null
                         >
                           {t("viewDocument", language) || "View Document"}
                         </Button>
-                      ) : (
-                        <Paper
-                          elevation={0}
-                          sx={{
-                            p: 1,
-                            borderRadius: 2,
-                            bgcolor: "#f5f5f5",
-                            border: "1px dashed #d1d5db",
-                            textAlign: "center",
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary" fontStyle="italic" sx={{ fontSize: "0.75rem" }}>
-                            {t("noDocumentAttached", language) || "No document attached"}
-                          </Typography>
-                        </Paper>
                       )}
                     </Stack>
                   </Box>

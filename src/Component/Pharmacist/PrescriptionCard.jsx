@@ -82,7 +82,7 @@ const PrescriptionCard = memo(({
               </Typography>
               {p.isChronic && (
                 <Chip
-                  label={language === "ar" ? "مزمن" : "Chronic"}
+                  label={t("chronic", language)}
                   size="small"
                   sx={{
                     bgcolor: "#dc2626",
@@ -186,7 +186,7 @@ const PrescriptionCard = memo(({
                 "&:hover": { bgcolor: "#f5f5dc", borderColor: "#3D4F23" },
               }}
             >
-              {language === "ar" ? "عرض الأدوية" : "View Medicines"}
+              {t("viewMedicines", language)}
             </Button>
           </Box>
 
@@ -194,7 +194,7 @@ const PrescriptionCard = memo(({
           <Stack direction="row" alignItems="center" spacing={0.75} sx={{ pt: 1, borderTop: "1px solid #f1f5f9" }}>
             <CalendarTodayIcon sx={{ fontSize: 14, color: "#9ca3af" }} />
             <Typography variant="caption" color="text.secondary" fontWeight={500}>
-              {language === "ar" ? "تاريخ الإصدار:" : "Issued:"} {formatDate(p.createdAt)}
+              {t("issued", language)}: {formatDate(p.createdAt)}
             </Typography>
           </Stack>
         </CardContent>
@@ -214,7 +214,7 @@ const PrescriptionCard = memo(({
                 "&:hover": { bgcolor: "#059669" },
               }}
             >
-              💊 {language === "ar" ? "صرف" : "Dispense"}
+              💊 {t("dispense", language)}
             </Button>
             <Button
               variant="outlined"
@@ -244,43 +244,71 @@ const PrescriptionCard = memo(({
         <DialogTitle sx={{ bgcolor: "#556B2F", color: "white", fontWeight: 700 }}>
           <Stack direction="row" alignItems="center" spacing={1}>
             <MedicationIcon />
-            <span>{language === "ar" ? "قائمة الأدوية" : "Medicines List"}</span>
+            <span>{t("medicinesList", language)}</span>
           </Stack>
         </DialogTitle>
         <DialogContent sx={{ mt: 2 }}>
           <Typography variant="body2" color="text.secondary" mb={2}>
-            {language === "ar" ? "المريض:" : "Patient:"} <b>{patientName}</b>
+            {t("patient", language)}: <b>{patientName}</b>
           </Typography>
           <Divider sx={{ mb: 2 }} />
           {p.items && p.items.length > 0 ? (
             <Stack spacing={1.5}>
               {p.items.map((item, idx) => (
-                <Box key={idx} sx={{ p: 1.5, bgcolor: "#fafaf5", borderRadius: 2, border: "1px solid #e8ede0" }}>
-                  <Stack direction="row" alignItems="center" spacing={1}>
+                <Box key={idx} sx={{ p: 2, bgcolor: "#fafaf5", borderRadius: 2, border: "1px solid #e8ede0" }}>
+                  <Stack direction="row" alignItems="center" spacing={1} mb={1}>
                     <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#556B2F", flexShrink: 0 }} />
                     <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" fontWeight={600} color="#1e293b">
+                      <Typography variant="body2" fontWeight={700} color="#1e293b">
                         {item.medicineName}
                       </Typography>
                       {item.scientificName && (
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" fontStyle="italic">
                           {item.scientificName}
                         </Typography>
                       )}
                     </Box>
                   </Stack>
+                  {/* Medicine Details */}
+                  <Box sx={{ pl: 2.5, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0.75 }}>
+                    {item.form && (
+                      <Typography variant="caption" color="text.secondary">
+                        <b>{t("form", language)}:</b> {item.form}
+                      </Typography>
+                    )}
+                    {item.dosage && (
+                      <Typography variant="caption" color="text.secondary">
+                        <b>{t("dosage", language)}:</b> {item.dosage}
+                      </Typography>
+                    )}
+                    {item.timesPerDay && (
+                      <Typography variant="caption" color="text.secondary">
+                        <b>{t("timesPerDay", language)}:</b> {item.timesPerDay}
+                      </Typography>
+                    )}
+                    {item.duration && (
+                      <Typography variant="caption" color="text.secondary">
+                        <b>{t("duration", language)}:</b> {item.duration}
+                      </Typography>
+                    )}
+                    {item.calculatedQuantity && (
+                      <Typography variant="caption" color="text.secondary">
+                        <b>{t("quantity", language)}:</b> {item.calculatedQuantity}
+                      </Typography>
+                    )}
+                  </Box>
                 </Box>
               ))}
             </Stack>
           ) : (
             <Typography variant="body2" color="text.secondary" textAlign="center" py={3}>
-              {language === "ar" ? "لا توجد أدوية" : "No medicines"}
+              {t("noMedicines", language)}
             </Typography>
           )}
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setViewDialogOpen(false)} variant="contained" sx={{ bgcolor: "#556B2F" }}>
-            {language === "ar" ? "إغلاق" : "Close"}
+            {t("close", language)}
           </Button>
         </DialogActions>
       </Dialog>

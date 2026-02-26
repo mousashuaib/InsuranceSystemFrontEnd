@@ -50,6 +50,8 @@ import PersonIcon from "@mui/icons-material/Person";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import FamilyRestroomIcon from "@mui/icons-material/FamilyRestroom";
+import { useLanguage } from "../../context/LanguageContext";
+import { t } from "../../config/translations";
 
 // Debounce hook for search
 const useDebounce = (value, delay = 300) => {
@@ -119,6 +121,7 @@ StatusIcon.displayName = "StatusIcon";
 
 // Memoized claim card component for virtual rendering
 const ClaimCard = memo(({ claim, roleConfig, normalizedRole, onOpenImage }) => {
+  const { language } = useLanguage();
   const roleData = useMemo(() => safeJsonParse(claim.roleSpecificData, {}), [claim.roleSpecificData]);
 
   return (
@@ -272,8 +275,8 @@ const ClaimCard = memo(({ claim, roleConfig, normalizedRole, onOpenImage }) => {
           </Grid>
         </Grid>
 
-        {/* View Document Button */}
-        {(Array.isArray(claim.invoiceImagePath) ? claim.invoiceImagePath.length > 0 : !!claim.invoiceImagePath) ? (
+        {/* View Document Button - only show when document exists */}
+        {(Array.isArray(claim.invoiceImagePath) ? claim.invoiceImagePath.length > 0 : !!claim.invoiceImagePath) && (
           <Button
             variant="contained"
             fullWidth
@@ -292,23 +295,8 @@ const ClaimCard = memo(({ claim, roleConfig, normalizedRole, onOpenImage }) => {
               },
             }}
           >
-            View Document
+            {t("viewDocument", language) || "View Document"}
           </Button>
-        ) : (
-          <Paper
-            elevation={0}
-            sx={{
-              p: 1,
-              borderRadius: 2,
-              bgcolor: "#f5f5f5",
-              border: "1px dashed #d1d5db",
-              textAlign: "center",
-            }}
-          >
-            <Typography variant="body2" color="text.secondary" fontSize="0.75rem">
-              No document
-            </Typography>
-          </Paper>
         )}
       </CardContent>
     </Card>

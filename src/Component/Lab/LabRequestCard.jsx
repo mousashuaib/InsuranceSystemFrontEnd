@@ -120,7 +120,7 @@ const LabRequestCard = memo(({
             </Avatar>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="body1" fontWeight={700} noWrap sx={{ color: "#1e293b" }}>
-                {patientName || "Unknown"}
+                {patientName || t("unknown", language)}
               </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
                 {patientAge && (
@@ -152,7 +152,7 @@ const LabRequestCard = memo(({
           {/* Family Member Indicator */}
           {isFamilyMember && (
             <Chip
-              label={`${familyMemberInfo?.relation} ${language === "ar" ? "لـ" : "of"} ${request.memberName}`}
+              label={`${familyMemberInfo?.relation} ${t("ofRelation", language)} ${request.memberName}`}
               size="small"
               sx={{
                 mb: 2,
@@ -183,7 +183,7 @@ const LabRequestCard = memo(({
                 "&:hover": { bgcolor: "#f5f5dc", borderColor: "#3D4F23" },
               }}
             >
-              {language === "ar" ? "عرض الفحص" : "View Test"}
+              {t("viewTest", language)}
             </Button>
           </Box>
 
@@ -191,7 +191,7 @@ const LabRequestCard = memo(({
           <Stack direction="row" alignItems="center" spacing={0.75} sx={{ pt: 1, borderTop: "1px solid #f1f5f9" }}>
             <CalendarTodayIcon sx={{ fontSize: 14, color: "#9ca3af" }} />
             <Typography variant="caption" color="text.secondary" fontWeight={500}>
-              {language === "ar" ? "تاريخ الإصدار:" : "Issued:"} {formatDate(request.createdAt)}
+              {t("issued", language)}: {formatDate(request.createdAt)}
             </Typography>
           </Stack>
         </CardContent>
@@ -212,7 +212,7 @@ const LabRequestCard = memo(({
                 "&:hover": { bgcolor: "#3D4F23" },
               }}
             >
-              {language === "ar" ? "رفع النتيجة" : "Upload Result"}
+              {t("uploadResult", language)}
             </Button>
           </Box>
         )}
@@ -221,7 +221,7 @@ const LabRequestCard = memo(({
         {request.status?.toLowerCase() === "completed" && (
           <Box sx={{ p: 2, pt: 0 }}>
             <Chip
-              label={language === "ar" ? "تم إرسال النتيجة" : "Results Submitted"}
+              label={t("resultsSubmitted", language)}
               color="success"
               variant="outlined"
               sx={{ width: "100%" }}
@@ -240,28 +240,28 @@ const LabRequestCard = memo(({
         <DialogTitle sx={{ bgcolor: "#556B2F", color: "white", fontWeight: 700 }}>
           <Stack direction="row" alignItems="center" spacing={1}>
             <ScienceIcon />
-            <span>{language === "ar" ? "تفاصيل الفحص" : "Test Details"}</span>
+            <span>{t("testDetails", language)}</span>
           </Stack>
         </DialogTitle>
         <DialogContent sx={{ mt: 2 }}>
           <Typography variant="body2" color="text.secondary" mb={2}>
-            {language === "ar" ? "المريض:" : "Patient:"} <b>{patientName}</b>
+            {t("patient", language)}: <b>{patientName}</b>
           </Typography>
           <Divider sx={{ mb: 2 }} />
           <Box sx={{ p: 2, bgcolor: "#fafaf5", borderRadius: 2, border: "1px solid #e8ede0" }}>
             <Stack spacing={1.5}>
               <Box>
                 <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                  {language === "ar" ? "اسم الفحص" : "Test Name"}
+                  {t("testName", language)}
                 </Typography>
                 <Typography variant="body1" fontWeight={600} color="#1e293b">
-                  {request.testName || "Unknown Test"}
+                  {request.testName || t("unknownTest", language)}
                 </Typography>
               </Box>
               {request.testType && (
                 <Box>
                   <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                    {language === "ar" ? "نوع الفحص" : "Test Type"}
+                    {t("testType", language)}
                   </Typography>
                   <Typography variant="body2" color="#1e293b">
                     {request.testType}
@@ -271,10 +271,10 @@ const LabRequestCard = memo(({
               {request.doctorName && (
                 <Box>
                   <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                    {language === "ar" ? "الطبيب المحيل" : "Requesting Doctor"}
+                    {t("requestingDoctor", language)}
                   </Typography>
                   <Typography variant="body2" color="#1e293b">
-                    Dr. {request.doctorName}
+                    {language === "ar" ? `د. ${request.doctorName}` : `Dr. ${request.doctorName}`}
                   </Typography>
                 </Box>
               )}
@@ -283,7 +283,7 @@ const LabRequestCard = memo(({
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setViewDialogOpen(false)} variant="contained" sx={{ bgcolor: "#556B2F" }}>
-            {language === "ar" ? "إغلاق" : "Close"}
+            {t("close", language)}
           </Button>
         </DialogActions>
       </Dialog>

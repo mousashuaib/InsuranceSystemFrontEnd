@@ -385,7 +385,7 @@ const PrescriptionList = ({ prescriptions, onVerify, onReject, onSubmitClaim, on
       setVerifyDialog({ open: false, prescription: null, prices: [] });
       
       // فتح dialog لإضافة document
-      setDocumentDialog({ open: true, loading: false, document: null });
+      setDocumentDialog({ open: true, loading: false, document: null, description: "" });
       
       setSnackbar({
         open: true,
@@ -471,9 +471,11 @@ const PrescriptionList = ({ prescriptions, onVerify, onReject, onSubmitClaim, on
         severity: "success",
       });
     } catch (err) {
+      console.error("Error submitting claim:", err);
+      const errorMsg = err.response?.data?.message || err.message || t("failedToSubmitClaim", language);
       setSnackbar({
         open: true,
-        message: err.response?.data?.message || t("failedToSubmitClaim", language),
+        message: errorMsg,
         severity: "error",
       });
     } finally {

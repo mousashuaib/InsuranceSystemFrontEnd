@@ -27,7 +27,6 @@ import ScienceIcon from "@mui/icons-material/Science";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import ReceiptIcon from "@mui/icons-material/Receipt";
-import PaidIcon from "@mui/icons-material/Paid";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 
 import LogoutDialog from "../Auth/LogoutDialog";
@@ -154,7 +153,7 @@ const LabSidebar = memo(function LabSidebar({ activeView, setActiveView }) {
             py: { xs: 1, sm: 0.8 },
             mb: 0.3,
             transition: "all 0.2s ease",
-            "&:hover": { backgroundColor: "rgba(255,255,255,0.1)", transform: "translateX(3px)" },
+            "&:hover": { backgroundColor: "rgba(255,255,255,0.1)", transform: isRTL ? "translateX(-3px)" : "translateX(3px)" },
           },
           "& .MuiListItemIcon-root": { minWidth: { xs: 48, sm: 42 }, color: "#fff" },
           "& .MuiListItemText-primary": { fontSize: { xs: "1rem", sm: "0.9rem" }, fontWeight: 400, letterSpacing: "0.2px", color: "#FFFFFF" },
@@ -212,7 +211,7 @@ const LabSidebar = memo(function LabSidebar({ activeView, setActiveView }) {
         </Tooltip>
 
         {/* Financial Report */}
-        <Tooltip title={t("financialReport", language) || "Financial Report"} placement={isRTL ? "left" : "right"} disableHoverListener={open || isDrawer}>
+        <Tooltip title={t("financialReport", language)} placement={isRTL ? "left" : "right"} disableHoverListener={open || isDrawer}>
           <ListItemButton
             onClick={() => handleNavClick("financial-report")}
             selected={activeView === "financial-report"}
@@ -221,23 +220,10 @@ const LabSidebar = memo(function LabSidebar({ activeView, setActiveView }) {
             <ListItemIcon>
               <AssessmentIcon sx={{ color: "#81C784", fontSize: { xs: 26, sm: 22 } }} />
             </ListItemIcon>
-            {(open || isDrawer) && <ListItemText primary={t("financialReport", language) || "Financial Report"} />}
+            {(open || isDrawer) && <ListItemText primary={t("financialReport", language)} />}
           </ListItemButton>
         </Tooltip>
 
-        {/* Consultation Prices */}
-        <Tooltip title={t("consultationPrices", language)} placement={isRTL ? "left" : "right"} disableHoverListener={open || isDrawer}>
-          <ListItemButton
-            onClick={() => handleNavClick("consultation-prices")}
-            selected={activeView === "consultation-prices"}
-            sx={{ "&.Mui-selected": { backgroundColor: "rgba(255,255,255,0.2)" } }}
-          >
-            <ListItemIcon>
-              <PaidIcon sx={{ color: "#4DB6AC", fontSize: { xs: 26, sm: 22 } }} />
-            </ListItemIcon>
-            {(open || isDrawer) && <ListItemText primary={t("consultationPrices", language)} />}
-          </ListItemButton>
-        </Tooltip>
         <Divider sx={{ my: 1, borderColor: "rgba(255,255,255,0.2)" }} />
 
         {/* Account Section */}

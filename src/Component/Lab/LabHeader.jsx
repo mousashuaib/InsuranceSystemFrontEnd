@@ -111,13 +111,13 @@ const LabHeader = memo(function LabHeader({
           {/* User Info */}
           <Box sx={{ textAlign: "right" }}>
             <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
-              {userInfo?.fullName || "Lab Tech"}
+              {userInfo?.fullName || t("labTechnician", language)}
             </Typography>
             <Typography
               variant="caption"
               sx={{ color: "gray", fontStyle: "italic" }}
             >
-              {userInfo?.roles?.[0] || "LAB_TECH"}
+              {userInfo?.roles?.[0] === "LAB_TECH" ? t("labTech", language) : (userInfo?.roles?.[0] || t("labTech", language))}
             </Typography>
           </Box>
 

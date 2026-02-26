@@ -19,6 +19,7 @@ const ClaimFormSection = ({
   setSnackbar,
   onClaimSubmit,
   onSkipClaim,
+  isFollowUpVisit = false,
 }) => {
   const { language, isRTL } = useLanguage();
 
@@ -48,6 +49,26 @@ const ClaimFormSection = ({
               ✅ {t("requestsCreated", language)}
             </Typography>
           </Stack>
+
+          {isFollowUpVisit && (
+            <Paper
+              elevation={2}
+              sx={{
+                borderRadius: 3,
+                p: 2,
+                mb: 2,
+                background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
+                border: "2px solid #f59e0b",
+              }}
+            >
+              <Typography variant="subtitle1" fontWeight={700} sx={{ color: "#92400e" }}>
+                ⚠️ {t("followUpVisit", language) || "Follow-up Visit"}
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#78350f", mt: 0.5 }}>
+                {t("followUpClaimZero", language) || "Insurance claim amount is 0. The patient pays the consultation fee directly to the doctor."}
+              </Typography>
+            </Paper>
+          )}
 
           <Paper
             elevation={4}

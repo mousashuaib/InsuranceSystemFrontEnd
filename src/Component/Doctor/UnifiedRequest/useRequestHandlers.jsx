@@ -269,6 +269,7 @@ export const useRequestSubmitHandler = ({
             : {
                 testId: lab.testId,
                 testName: lab.test.serviceName,
+                memberId: patientForm.memberId,
                 memberName: patientForm.memberName,
                 notes: labNotes,
                 diagnosis: noDiagnosisTreatment ? "" : patientForm.diagnosis,

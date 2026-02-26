@@ -809,6 +809,7 @@ const UnifiedCreateRequest = () => {
         snackbar={snackbar}
         setSnackbar={setSnackbar}
         onClaimSubmit={handleClaimSubmit}
+        isFollowUpVisit={isFollowUpVisit}
         onSkipClaim={() => {
           localStorage.setItem("doctorActiveView", "create-center");
           window.location.href = "/DoctorDashboard";

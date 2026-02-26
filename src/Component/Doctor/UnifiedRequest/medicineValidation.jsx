@@ -29,27 +29,14 @@ export const useMedicineValidation = (_selectedFamilyMember, _patientForm) => {
             message = `Medicine "${medicineName}" is blocked. Pending prescription exists.`;
           }
           canProceed = false;
-        } else if (data.status === "VERIFIED" && data.expiryDate) {
-          const expiryDate = new Date(data.expiryDate);
-          const now = new Date();
-
-          if (expiryDate > now) {
-            const remainingDays = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
-            const formattedDate = expiryDate.toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-            });
-
-            if (memberType === "FAMILY_MEMBER" && relation) {
-              message = `Active prescription for ${memberName} (${relation}) until ${formattedDate} (${remainingDays} days remaining).`;
-            } else {
-              message = `Active prescription until ${formattedDate} (${remainingDays} days remaining).`;
-            }
-            canProceed = true;
+        } else if (data.status === "VERIFIED") {
+          // VERIFIED = pharmacist verified but not yet dispensed → block until dispensed
+          if (memberType === "FAMILY_MEMBER" && relation) {
+            message = `Medicine "${medicineName}" is blocked. Verified prescription for ${memberName} (${relation}), not yet dispensed.`;
           } else {
-            canProceed = true;
+            message = `Medicine "${medicineName}" is blocked. Verified prescription exists, not yet dispensed.`;
           }
+          canProceed = false;
         } else if (data.status === "BILLED") {
           if (data.allowedDate) {
             const allowedDate = new Date(data.allowedDate);
